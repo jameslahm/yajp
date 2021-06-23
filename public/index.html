@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head></head>
+  <body>
+    
+  </body>
+  <script>
+    var Module = {
+      onRuntimeInitialized: function () {
+        const parser = new Module.Parser('"123"');
+        console.log(parser.Parse())
+      },
+    };
+  </script>
+  <script src="yajp.js"></script>
+</html>

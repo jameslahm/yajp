@@ -1,0 +1,1 @@
+/home/wangao/projects/emsdk/upstream/emscripten/em++    --bind @CMakeFiles/yajp.dir/objects1.rsp  -o ../public/yajp.js 
