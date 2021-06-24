@@ -23,7 +23,16 @@ enum class NodeType {
   kReturnStatement,
   kContinueStatement,
   kBreakStatement,
-  kIfStatement
+  kIfStatement,
+  kSwitchStatement,
+  kSwitchCase,
+  kWhileStatement,
+  kDoWhileStatement,
+  kForStatement,
+  kVariableDeclaration,
+  kVariableDeclarator,
+  kForInStatement,
+  kForOfStatement
 };
 
 class Node {
@@ -133,11 +142,11 @@ public:
         right_(move(right)) {}
 };
 
-class ExpressionStatement : public Node {
+class ExpressionStatementNode : public Node {
   unique_ptr<Node> expression_;
 
 public:
-  ExpressionStatement(unique_ptr<Node> expression)
+  ExpressionStatementNode(unique_ptr<Node> expression)
       : Node(NodeType::kExpressionStatement), expression_(move(expression)) {}
 };
 
@@ -146,7 +155,7 @@ class BlockStatementNode : public Node {
 
 public:
   BlockStatementNode(vector<unique_ptr<Node>> body)
-      : Node(NodeType::kBlockStatement), body_(body) {}
+      : Node(NodeType::kBlockStatement), body_(move(body)) {}
 };
 
 class DebuggerStatementNode : public Node {
@@ -190,6 +199,106 @@ public:
         consequent_(move(consequent)), alternate_(move(alternate)) {}
 };
 
+class SwitchStatementNode : public Node {
+  unique_ptr<Node> discriminant_;
+  vector<unique_ptr<Node>> cases_;
+
+public:
+  SwitchStatementNode(unique_ptr<Node> discriminant,
+                      vector<unique_ptr<Node>> cases)
+      : Node(NodeType::kSwitchStatement), discriminant_(move(discriminant)),
+        cases_(move(cases)) {}
+};
+
+class SwitchCaseNode : public Node {
+  unique_ptr<Node> test_;
+  vector<unique_ptr<Node>> consequent_;
+
+public:
+  SwitchCaseNode(unique_ptr<Node> test, vector<unique_ptr<Node>> consequent)
+      : Node(NodeType::kSwitchCase), test_(move(test)),
+        consequent_(move(consequent)) {}
+};
+
+class WhileStatementNode : public Node {
+  unique_ptr<Node> test_;
+  unique_ptr<Node> body_;
+
+public:
+  WhileStatementNode(unique_ptr<Node> test, unique_ptr<Node> body)
+      : Node(NodeType::kWhileStatement), test_(move(test)), body_(move(body)) {}
+};
+
+class DoWhileStatementNode : public Node {
+  unique_ptr<Node> test_;
+  unique_ptr<Node> body_;
+
+public:
+  DoWhileStatementNode(unique_ptr<Node> test, unique_ptr<Node> body)
+      : Node(NodeType::kDoWhileStatement), test_(move(test)),
+        body_(move(body)) {}
+};
+
+class ForStatementNode : public Node {
+  unique_ptr<Node> init_;
+  unique_ptr<Node> test_;
+  unique_ptr<Node> update_;
+  unique_ptr<Node> body_;
+
+public:
+  ForStatementNode(unique_ptr<Node> init, unique_ptr<Node> test,
+                   unique_ptr<Node> update, unique_ptr<Node> body)
+      : Node(NodeType::kForStatement), init_(move(init)), test_(move(test)),
+        update_(move(update)), body_(move(body)) {}
+};
+
+enum class VariableDeclarationKind { kVar, kLet, kConst };
+
+class VariableDeclaratorNode : public Node {
+  unique_ptr<Node> id_;
+  unique_ptr<Node> init_;
+
+public:
+  VariableDeclaratorNode(unique_ptr<Node> id, unique_ptr<Node> init)
+      : Node(NodeType::kVariableDeclarator), id_(move(id)), init_(move(init)) {}
+};
+
+class VariableDeclarationNode : public Node {
+  VariableDeclarationKind kind_;
+  vector<unique_ptr<Node>> declarations_;
+
+public:
+  VariableDeclarationNode(VariableDeclarationKind kind,
+                          vector<unique_ptr<Node>> declarations)
+      : Node(NodeType::kVariableDeclaration), kind_(kind),
+        declarations_(move(declarations)) {}
+};
+
+class ForInStatementNode : public Node {
+  unique_ptr<Node> left_;
+  unique_ptr<Node> right_;
+  unique_ptr<Node> body_;
+
+public:
+  ForInStatementNode(unique_ptr<Node> left, unique_ptr<Node> right,
+                     unique_ptr<Node> body)
+      : Node(NodeType::kForInStatement), left_(move(left)), right_(move(right)),
+        body_(move(body)) {}
+};
+
+class ForOfStatementNode : public Node {
+  unique_ptr<Node> left_;
+  unique_ptr<Node> right_;
+  unique_ptr<Node> body_;
+  bool await_;
+
+public:
+  ForOfStatementNode(unique_ptr<Node> left, unique_ptr<Node> right,
+                 unique_ptr<Node> body, bool await)
+      : Node(NodeType::kForOfStatement), left_(move(left)), right_(move(right)),
+        body_(move(body)) {}
+};
+
 class Parser {
   unique_ptr<Lexer> lexer_;
   map<BinaryOperator, int> binary_op_precendences_;
@@ -226,10 +335,22 @@ public:
   unique_ptr<Node> ParseBreakStatement();
   unique_ptr<Node> ParseContinueStatement();
   unique_ptr<Node> ParseIfStatement();
+  unique_ptr<Node> ParseSwitchStatement();
+  unique_ptr<Node> ParseSwitchNodeStatement();
+  unique_ptr<Node> ParseWhileStatement();
+  unique_ptr<Node> ParseDoWhileStatement();
+  unique_ptr<Node> ParseForStatement();
+  unique_ptr<Node> ParseVariableDeclaration();
+  unique_ptr<Node> ParseVariableDeclarator();
+  unique_ptr<Node> ParseForInStatement(unique_ptr<Node> left);
+  unique_ptr<Node> ParseForOfStatement(unique_ptr<Node> left, bool await);
+  unique_ptr<Node> ParseForInStatementOrForOfStatement();
 
   void
   InstallBinaryOpPrecendences(map<BinaryOperator, int> binary_op_precendences);
   int GetBinaryOpPrecendence(BinaryOperator op);
   BinaryOperator GetBinaryOpFromToken(TokenType token);
   bool CheckIsBianryOp(TokenType token);
+  VariableDeclarationKind GetVariableDeclarationKindFromToken(TokenType token);
+  bool CheckIsVariableDeclaration(TokenType token);
 };

@@ -35,7 +35,22 @@ enum class TokenType {
   kDebuggerToken,
   kReturnToken,
   kBreakToken,
-  kContinueToken
+  kContinueToken,
+  kElseToken,
+  kIfToken,
+  kSwitchToken,
+  kCaseToken,
+  kColonToken,
+  kDefaultToken,
+  kLetToken,
+  kVarToken,
+  kCommaToken,
+  kEqualToken,
+  kEqualEqualToken,
+  kEqualEqualEqualToken,
+  kInToken,
+  kOfToken,
+  kAwaitToken
 };
 
 class Lexer {
@@ -127,6 +142,56 @@ public:
         return current_token_;
       }
 
+      if(value_=="if"){
+        current_token_ = TokenType::kIfToken;
+        return current_token_;
+      }
+
+      if(value_=="else") {
+        current_token_ = TokenType::kElseToken;
+        return current_token_;
+      }
+
+      if(value_=="switch") {
+        current_token_ = TokenType::kSwitchToken;
+        return current_token_;
+      }
+
+      if(value_=="case") {
+        current_token_ = TokenType::kCaseToken;
+        return current_token_;
+      }
+
+      if(value_=="default") {
+        current_token_ = TokenType::kDefaultToken;
+        return current_token_;
+      }
+
+      if(value_=="let") {
+        current_token_ = TokenType::kLetToken;
+        return current_token_;
+      }
+
+      if(value_=="var") {
+        current_token_ = TokenType::kVarToken;
+        return current_token_;
+      }
+
+      if(value_=="in"){
+        current_token_ = TokenType::kInToken;
+        return current_token_;
+      }
+
+      if(value_=="of") {
+        current_token_ = TokenType::kOfToken;
+        return current_token_;
+      }
+
+      if(value_=="await") {
+        current_token_ = TokenType::kAwaitToken;
+        return current_token_;
+      }
+
       current_token_ = TokenType::kIdentifierToken;
       return current_token_;
     }
@@ -214,6 +279,24 @@ public:
       stream_ >> current_char_;
       current_token_ = TokenType::kSemiColonToken;
       return current_token_;
+    }
+
+    if(current_char_ == ':') {
+      stream_ >> current_char_;
+      current_token_ = TokenType::kColonToken;
+      return current_token_;
+    }
+
+    if(current_char_=='='){
+      stream_ >> current_char_;
+      if(current_char_=='='){
+        stream_ >> current_char_;
+        if(current_char_ == '=') {
+          return TokenType::kEqualEqualEqualToken;
+        }
+        return TokenType::kEqualEqualToken;
+      }
+      return TokenType::kEqualToken;
     }
 
     if (current_char_ == EOF) {

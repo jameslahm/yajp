@@ -3,10 +3,12 @@
 #include <cstdlib>
 #include <memory>
 #include <utility>
+#include <vector>
 
-#define SKIP_SEMICOLON if (lexer_->current_token()==TokenType::kSemiColonToken){ \
-  lexer_->GetToken(); \
-} \
+#define SKIP_SEMICOLON                                                         \
+  if (lexer_->current_token() == TokenType::kSemiColonToken) {                 \
+    lexer_->GetToken();                                                        \
+  }
 
 unique_ptr<Node> Parser::ParseStringLiteral() {
   auto value = lexer_->value();
@@ -186,15 +188,15 @@ unique_ptr<Node> Parser::ParseExpression() {
 unique_ptr<Node> Parser::ParseExpressionStatement() {
   auto expression = ParseExpression();
   SKIP_SEMICOLON;
-  return make_unique<ExpressionStatement>(move(expression));
+  return make_unique<ExpressionStatementNode>(move(expression));
 }
 
-unique_ptr<Node> Parser::ParseEmptyStatement(){
+unique_ptr<Node> Parser::ParseEmptyStatement() {
   SKIP_SEMICOLON;
   return make_unique<EmptyStatementNode>();
 }
 
-unique_ptr<Node> Parser::ParseDebuggerStatement(){
+unique_ptr<Node> Parser::ParseDebuggerStatement() {
   lexer_->GetToken();
   SKIP_SEMICOLON;
   return make_unique<DebuggerStatementNode>();
@@ -221,29 +223,213 @@ unique_ptr<Node> Parser::ParseBlockStatement() {
   return make_unique<BlockStatementNode>(move(body));
 }
 
-unique_ptr<Node> Parser::ParseReturnStatement(){
+unique_ptr<Node> Parser::ParseReturnStatement() {
   lexer_->GetToken();
   auto argument = ParseExpression();
   SKIP_SEMICOLON;
   return make_unique<ReturnStatementNode>(move(argument));
 }
 
-unique_ptr<Node> Parser::ParseContinueStatement(){
+unique_ptr<Node> Parser::ParseContinueStatement() {
   lexer_->GetToken();
   SKIP_SEMICOLON;
   return make_unique<ContinueStatementNode>();
 }
 
-unique_ptr<Node> Parser::ParseBreakStatement(){
+unique_ptr<Node> Parser::ParseBreakStatement() {
   lexer_->GetToken();
   SKIP_SEMICOLON;
   return make_unique<BreakStatementNode>();
 }
 
-unique_ptr<Node> Parser::ParseIfStatement(){
+unique_ptr<Node> Parser::ParseIfStatement() {
   lexer_->GetToken();
   lexer_->GetToken();
-  
+  auto test = ParseExpression();
+  lexer_->GetToken();
+  auto consequent = ParseStatement();
+  unique_ptr<Node> alternate = nullptr;
+  if (lexer_->current_token() == TokenType::kElseToken) {
+    lexer_->GetToken();
+    alternate = ParseStatement();
+  }
+  return make_unique<IfStatementNode>(move(test), move(consequent),
+                                      move(alternate));
+}
+
+unique_ptr<Node> Parser::ParseSwitchNodeStatement() {
+  lexer_->GetToken();
+  unique_ptr<Node> test = nullptr;
+  if (lexer_->current_token() != TokenType::kColonToken) {
+    test = ParseExpression();
+  }
+  lexer_->GetToken();
+  vector<unique_ptr<Node>> consequent;
+  while (lexer_->current_token() != TokenType::kCaseToken &&
+         lexer_->current_token() != TokenType::kDefaultToken &&
+         lexer_->current_token() != TokenType::kRightBraceToken) {
+    auto statement = ParseStatement();
+    consequent.push_back(move(statement));
+  }
+  return make_unique<SwitchCaseNode>(move(test), move(consequent));
+}
+
+unique_ptr<Node> Parser::ParseSwitchStatement() {
+  lexer_->GetToken();
+  lexer_->GetToken();
+  auto discriminant = ParseExpression();
+  lexer_->GetToken();
+  lexer_->GetToken();
+
+  vector<unique_ptr<Node>> cases;
+  while (lexer_->current_token() == TokenType::kCaseToken ||
+         lexer_->current_token() == TokenType::kDefaultToken) {
+    cases.push_back(ParseSwitchNodeStatement());
+  }
+  lexer_->GetToken();
+  return make_unique<SwitchStatementNode>(move(discriminant), move(cases));
+}
+
+unique_ptr<Node> Parser::ParseWhileStatement() {
+  lexer_->GetToken();
+  lexer_->GetToken();
+  auto test = ParseExpression();
+  lexer_->GetToken();
+  auto body = ParseStatement();
+  return make_unique<WhileStatementNode>(move(test), move(body));
+}
+
+unique_ptr<Node> Parser::ParseDoWhileStatement() {
+  lexer_->GetToken();
+  auto body = ParseStatement();
+  lexer_->GetToken();
+  lexer_->GetToken();
+  auto test = ParseExpression();
+  lexer_->GetToken();
+  return make_unique<DoWhileStatementNode>(move(test), move(body));
+};
+
+VariableDeclarationKind
+Parser::GetVariableDeclarationKindFromToken(TokenType token) {
+  switch (token) {
+  case TokenType::kConstToken: {
+    return VariableDeclarationKind::kConst;
+  }
+  case TokenType::kLetToken: {
+    return VariableDeclarationKind::kLet;
+  }
+  case TokenType::kVarToken: {
+    return VariableDeclarationKind::kVar;
+  }
+  default: {
+    UNREACHABLE;
+  }
+  }
+}
+
+unique_ptr<Node> Parser::ParseVariableDeclarator() {
+  auto id = ParseIdentifier();
+  unique_ptr<Node> init = nullptr;
+  if (lexer_->current_token() == TokenType::kEqualToken) {
+    init = ParseExpression();
+  }
+  return make_unique<VariableDeclaratorNode>(move(id), move(init));
+}
+
+unique_ptr<Node> Parser::ParseVariableDeclaration() {
+  auto kind = GetVariableDeclarationKindFromToken(lexer_->current_token());
+  lexer_->GetToken();
+  vector<unique_ptr<Node>> declarations;
+  while (1) {
+    auto declaration = ParseVariableDeclarator();
+    declarations.push_back(move(declaration));
+    if (lexer_->current_token() != TokenType::kCommaToken) {
+      break;
+    }
+  }
+  SKIP_SEMICOLON;
+  return make_unique<VariableDeclarationNode>(kind, move(declarations));
+}
+
+bool Parser::CheckIsVariableDeclaration(TokenType token) {
+  switch (token) {
+  case TokenType::kVarToken:
+  case TokenType::kLetToken:
+  case TokenType::kConstToken: {
+    return true;
+  }
+  default: {
+    return false;
+  }
+  }
+}
+
+unique_ptr<Node> Parser::ParseForStatement() {
+  lexer_->GetToken();
+  lexer_->GetToken();
+  unique_ptr<Node> init = nullptr;
+  if (lexer_->current_token() != TokenType::kSemiColonToken) {
+    if (CheckIsVariableDeclaration(lexer_->current_token())) {
+      init = ParseVariableDeclaration();
+    } else {
+      init = ParseExpression();
+    }
+  }
+  lexer_->GetToken();
+  unique_ptr<Node> test = nullptr;
+  if (lexer_->current_token() != TokenType::kSemiColonToken) {
+    test = ParseExpression();
+  }
+  unique_ptr<Node> update = nullptr;
+  lexer_->GetToken();
+  if (lexer_->current_token() != TokenType::kRightBraceToken) {
+    update = ParseExpression();
+  }
+  auto body = ParseStatement();
+  return make_unique<ForStatementNode>(move(init), move(test), move(update),
+                                       move(body));
+}
+
+unique_ptr<Node> Parser::ParseForInStatementOrForOfStatement() {
+  lexer_->GetToken();
+  bool await = false;
+  if(lexer_->current_token()==TokenType::kAwaitToken){
+    await = true;
+    lexer_->GetToken();
+  }
+  lexer_->GetToken();
+  unique_ptr<Node> left = nullptr;
+  if (CheckIsVariableDeclaration(lexer_->current_token())) {
+    left = ParseVariableDeclaration();
+  } else {
+    left = ParseExpression();
+  }
+
+  switch (lexer_->current_token()) {
+  case TokenType::kInToken: {
+    return ParseForInStatement(move(left));
+  }
+  case TokenType::kOfToken: {
+    return ParseForOfStatement(move(left),await);
+  }
+  default: {
+    UNREACHABLE;
+  }
+  }
+}
+
+unique_ptr<Node> Parser::ParseForInStatement(unique_ptr<Node> left) {
+  lexer_->GetToken();
+  auto right = ParseExpression();
+  auto body = ParseStatement();
+  return make_unique<ForInStatementNode>(move(left), move(right), move(body));
+}
+
+unique_ptr<Node> Parser::ParseForOfStatement(unique_ptr<Node> left, bool await) {
+  lexer_->GetToken();
+  auto right = ParseExpression();
+  auto body = ParseStatement();
+  return make_unique<ForOfStatementNode>(move(left), move(right), move(body),await);
 }
 
 unique_ptr<Node> Parser::Parse() {

@@ -6,9 +6,15 @@
 
 #IncludeRegexTransform: 
 
+/home/wangao/projects/yajp/error.cpp
+string
+-
+
 /home/wangao/projects/yajp/error.hpp
 string
 -
+
+/home/wangao/projects/yajp/lexer.cpp
 
 /home/wangao/projects/yajp/lexer.hpp
 error.hpp
@@ -43,6 +49,8 @@ memory
 -
 string
 -
+vector
+-
 
 /home/wangao/projects/yajp/parser.cpp
 parser.hpp
@@ -54,6 +62,8 @@ cstdlib
 memory
 -
 utility
+-
+vector
 -
 
 /home/wangao/projects/yajp/parser.hpp
@@ -70,6 +80,8 @@ pthread.h
 string
 -
 type_traits
+-
+vector
 -
 
 /home/wangao/projects/yajp/util.hpp
