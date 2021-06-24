@@ -7,8 +7,9 @@
   <script>
     var Module = {
       onRuntimeInitialized: function () {
-        const parser = new Module.Parser('"123"');
-        console.log(parser.Parse())
+        const parser = new Module.Parser('1+2');
+        const node = parser.Parse()
+        console.log(node.left)
       },
     };
   </script>

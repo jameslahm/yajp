@@ -5,6 +5,6 @@
 #include <sstream>
 
 int main() {
-  auto parser = new Parser("123");
+  auto parser = new Parser("1+2");
   parser->Parse();
 }

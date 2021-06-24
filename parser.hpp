@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 using namespace std;
 
@@ -94,10 +95,10 @@ enum class UnaryOperator {
 
 class UnaryExpressionNode : public Node {
   UnaryOperator op_;
-  unique_ptr<Node> argument_;
+  shared_ptr<Node> argument_;
 
 public:
-  UnaryExpressionNode(UnaryOperator op, unique_ptr<Node> argument)
+  UnaryExpressionNode(UnaryOperator op, shared_ptr<Node> argument)
       : Node(NodeType::kUnaryExpression), op_(op), argument_(move(argument)) {}
 
   UnaryOperator op() { return op_; }
@@ -132,29 +133,33 @@ interface BinaryExpression <: Expression {
 */
 class BinaryExpressionNode : public Node {
   BinaryOperator op_;
-  unique_ptr<Node> left_;
-  unique_ptr<Node> right_;
+  shared_ptr<Node> left_;
+  shared_ptr<Node> right_;
 
 public:
-  BinaryExpressionNode(BinaryOperator op, unique_ptr<Node> left,
-                       unique_ptr<Node> right)
+  BinaryExpressionNode(BinaryOperator op, shared_ptr<Node> left,
+                       shared_ptr<Node> right)
       : Node(NodeType::kBinaryExpression), op_(op), left_(move(left)),
         right_(move(right)) {}
+  shared_ptr<Node> left() const { return left_; }
+  shared_ptr<Node> right() { return right_; }
+  BinaryOperator op() { return op_; }
+  void set_left(shared_ptr<Node> left) { left_ = move(left); }
 };
 
 class ExpressionStatementNode : public Node {
-  unique_ptr<Node> expression_;
+  shared_ptr<Node> expression_;
 
 public:
-  ExpressionStatementNode(unique_ptr<Node> expression)
+  ExpressionStatementNode(shared_ptr<Node> expression)
       : Node(NodeType::kExpressionStatement), expression_(move(expression)) {}
 };
 
 class BlockStatementNode : public Node {
-  vector<unique_ptr<Node>> body_;
+  vector<shared_ptr<Node>> body_;
 
 public:
-  BlockStatementNode(vector<unique_ptr<Node>> body)
+  BlockStatementNode(vector<shared_ptr<Node>> body)
       : Node(NodeType::kBlockStatement), body_(move(body)) {}
 };
 
@@ -169,10 +174,10 @@ public:
 };
 
 class ReturnStatementNode : public Node {
-  unique_ptr<Node> argument_;
+  shared_ptr<Node> argument_;
 
 public:
-  ReturnStatementNode(unique_ptr<Node> argument)
+  ReturnStatementNode(shared_ptr<Node> argument)
       : Node(NodeType::kReturnStatement), argument_(move(argument)) {}
 };
 
@@ -188,66 +193,66 @@ public:
 };
 
 class IfStatementNode : public Node {
-  unique_ptr<Node> test_;
-  unique_ptr<Node> consequent_;
-  unique_ptr<Node> alternate_;
+  shared_ptr<Node> test_;
+  shared_ptr<Node> consequent_;
+  shared_ptr<Node> alternate_;
 
 public:
-  IfStatementNode(unique_ptr<Node> test, unique_ptr<Node> consequent,
-                  unique_ptr<Node> alternate)
+  IfStatementNode(shared_ptr<Node> test, shared_ptr<Node> consequent,
+                  shared_ptr<Node> alternate)
       : Node(NodeType::kIfStatement), test_(move(test)),
         consequent_(move(consequent)), alternate_(move(alternate)) {}
 };
 
 class SwitchStatementNode : public Node {
-  unique_ptr<Node> discriminant_;
-  vector<unique_ptr<Node>> cases_;
+  shared_ptr<Node> discriminant_;
+  vector<shared_ptr<Node>> cases_;
 
 public:
-  SwitchStatementNode(unique_ptr<Node> discriminant,
-                      vector<unique_ptr<Node>> cases)
+  SwitchStatementNode(shared_ptr<Node> discriminant,
+                      vector<shared_ptr<Node>> cases)
       : Node(NodeType::kSwitchStatement), discriminant_(move(discriminant)),
         cases_(move(cases)) {}
 };
 
 class SwitchCaseNode : public Node {
-  unique_ptr<Node> test_;
-  vector<unique_ptr<Node>> consequent_;
+  shared_ptr<Node> test_;
+  vector<shared_ptr<Node>> consequent_;
 
 public:
-  SwitchCaseNode(unique_ptr<Node> test, vector<unique_ptr<Node>> consequent)
+  SwitchCaseNode(shared_ptr<Node> test, vector<shared_ptr<Node>> consequent)
       : Node(NodeType::kSwitchCase), test_(move(test)),
         consequent_(move(consequent)) {}
 };
 
 class WhileStatementNode : public Node {
-  unique_ptr<Node> test_;
-  unique_ptr<Node> body_;
+  shared_ptr<Node> test_;
+  shared_ptr<Node> body_;
 
 public:
-  WhileStatementNode(unique_ptr<Node> test, unique_ptr<Node> body)
+  WhileStatementNode(shared_ptr<Node> test, shared_ptr<Node> body)
       : Node(NodeType::kWhileStatement), test_(move(test)), body_(move(body)) {}
 };
 
 class DoWhileStatementNode : public Node {
-  unique_ptr<Node> test_;
-  unique_ptr<Node> body_;
+  shared_ptr<Node> test_;
+  shared_ptr<Node> body_;
 
 public:
-  DoWhileStatementNode(unique_ptr<Node> test, unique_ptr<Node> body)
+  DoWhileStatementNode(shared_ptr<Node> test, shared_ptr<Node> body)
       : Node(NodeType::kDoWhileStatement), test_(move(test)),
         body_(move(body)) {}
 };
 
 class ForStatementNode : public Node {
-  unique_ptr<Node> init_;
-  unique_ptr<Node> test_;
-  unique_ptr<Node> update_;
-  unique_ptr<Node> body_;
+  shared_ptr<Node> init_;
+  shared_ptr<Node> test_;
+  shared_ptr<Node> update_;
+  shared_ptr<Node> body_;
 
 public:
-  ForStatementNode(unique_ptr<Node> init, unique_ptr<Node> test,
-                   unique_ptr<Node> update, unique_ptr<Node> body)
+  ForStatementNode(shared_ptr<Node> init, shared_ptr<Node> test,
+                   shared_ptr<Node> update, shared_ptr<Node> body)
       : Node(NodeType::kForStatement), init_(move(init)), test_(move(test)),
         update_(move(update)), body_(move(body)) {}
 };
@@ -255,52 +260,52 @@ public:
 enum class VariableDeclarationKind { kVar, kLet, kConst };
 
 class VariableDeclaratorNode : public Node {
-  unique_ptr<Node> id_;
-  unique_ptr<Node> init_;
+  shared_ptr<Node> id_;
+  shared_ptr<Node> init_;
 
 public:
-  VariableDeclaratorNode(unique_ptr<Node> id, unique_ptr<Node> init)
+  VariableDeclaratorNode(shared_ptr<Node> id, shared_ptr<Node> init)
       : Node(NodeType::kVariableDeclarator), id_(move(id)), init_(move(init)) {}
 };
 
 class VariableDeclarationNode : public Node {
   VariableDeclarationKind kind_;
-  vector<unique_ptr<Node>> declarations_;
+  vector<shared_ptr<Node>> declarations_;
 
 public:
   VariableDeclarationNode(VariableDeclarationKind kind,
-                          vector<unique_ptr<Node>> declarations)
+                          vector<shared_ptr<Node>> declarations)
       : Node(NodeType::kVariableDeclaration), kind_(kind),
         declarations_(move(declarations)) {}
 };
 
 class ForInStatementNode : public Node {
-  unique_ptr<Node> left_;
-  unique_ptr<Node> right_;
-  unique_ptr<Node> body_;
+  shared_ptr<Node> left_;
+  shared_ptr<Node> right_;
+  shared_ptr<Node> body_;
 
 public:
-  ForInStatementNode(unique_ptr<Node> left, unique_ptr<Node> right,
-                     unique_ptr<Node> body)
+  ForInStatementNode(shared_ptr<Node> left, shared_ptr<Node> right,
+                     shared_ptr<Node> body)
       : Node(NodeType::kForInStatement), left_(move(left)), right_(move(right)),
         body_(move(body)) {}
 };
 
 class ForOfStatementNode : public Node {
-  unique_ptr<Node> left_;
-  unique_ptr<Node> right_;
-  unique_ptr<Node> body_;
+  shared_ptr<Node> left_;
+  shared_ptr<Node> right_;
+  shared_ptr<Node> body_;
   bool await_;
 
 public:
-  ForOfStatementNode(unique_ptr<Node> left, unique_ptr<Node> right,
-                 unique_ptr<Node> body, bool await)
+  ForOfStatementNode(shared_ptr<Node> left, shared_ptr<Node> right,
+                     shared_ptr<Node> body, bool await)
       : Node(NodeType::kForOfStatement), left_(move(left)), right_(move(right)),
         body_(move(body)) {}
 };
 
 class Parser {
-  unique_ptr<Lexer> lexer_;
+  shared_ptr<Lexer> lexer_;
   map<BinaryOperator, int> binary_op_precendences_;
 
   map<BinaryOperator, int> kDefaultBinaryOpPrecendences = {
@@ -310,41 +315,43 @@ class Parser {
   };
 
 public:
-  Parser(unique_ptr<Lexer> lexer) : lexer_(move(lexer)) {
+  Parser(shared_ptr<Lexer> lexer) : lexer_(move(lexer)) {
     InstallBinaryOpPrecendences(kDefaultBinaryOpPrecendences);
   }
 
-  Parser(string source) : lexer_(new Lexer(source)) {}
+  Parser(string source) : lexer_(new Lexer(source)) {
+    InstallBinaryOpPrecendences(kDefaultBinaryOpPrecendences);
+  }
 
-  unique_ptr<Node> Parse();
-  unique_ptr<Node> ParseUnaryExpression();
-  unique_ptr<Node> ParseBinaryExpression(unique_ptr<Node> left,
+  shared_ptr<Node> Parse();
+  shared_ptr<Node> ParseUnaryExpression();
+  shared_ptr<Node> ParseBinaryExpression(shared_ptr<Node> left,
                                          int precendence);
-  unique_ptr<Node> ParseIdentifier();
-  unique_ptr<Node> ParseStringLiteral();
-  unique_ptr<Node> ParseNumericLiteral();
-  unique_ptr<Node> ParseNullLiteral();
-  unique_ptr<Node> ParseBooleanLiteral();
-  unique_ptr<Node> ParseExpression();
-  unique_ptr<Node> ParseExpressionStatement();
-  unique_ptr<Node> ParseBlockStatement();
-  unique_ptr<Node> ParseStatement();
-  unique_ptr<Node> ParseEmptyStatement();
-  unique_ptr<Node> ParseDebuggerStatement();
-  unique_ptr<Node> ParseReturnStatement();
-  unique_ptr<Node> ParseBreakStatement();
-  unique_ptr<Node> ParseContinueStatement();
-  unique_ptr<Node> ParseIfStatement();
-  unique_ptr<Node> ParseSwitchStatement();
-  unique_ptr<Node> ParseSwitchNodeStatement();
-  unique_ptr<Node> ParseWhileStatement();
-  unique_ptr<Node> ParseDoWhileStatement();
-  unique_ptr<Node> ParseForStatement();
-  unique_ptr<Node> ParseVariableDeclaration();
-  unique_ptr<Node> ParseVariableDeclarator();
-  unique_ptr<Node> ParseForInStatement(unique_ptr<Node> left);
-  unique_ptr<Node> ParseForOfStatement(unique_ptr<Node> left, bool await);
-  unique_ptr<Node> ParseForInStatementOrForOfStatement();
+  shared_ptr<Node> ParseIdentifier();
+  shared_ptr<Node> ParseStringLiteral();
+  shared_ptr<Node> ParseNumericLiteral();
+  shared_ptr<Node> ParseNullLiteral();
+  shared_ptr<Node> ParseBooleanLiteral();
+  shared_ptr<Node> ParseExpression();
+  shared_ptr<Node> ParseExpressionStatement();
+  shared_ptr<Node> ParseBlockStatement();
+  shared_ptr<Node> ParseStatement();
+  shared_ptr<Node> ParseEmptyStatement();
+  shared_ptr<Node> ParseDebuggerStatement();
+  shared_ptr<Node> ParseReturnStatement();
+  shared_ptr<Node> ParseBreakStatement();
+  shared_ptr<Node> ParseContinueStatement();
+  shared_ptr<Node> ParseIfStatement();
+  shared_ptr<Node> ParseSwitchStatement();
+  shared_ptr<Node> ParseSwitchNodeStatement();
+  shared_ptr<Node> ParseWhileStatement();
+  shared_ptr<Node> ParseDoWhileStatement();
+  shared_ptr<Node> ParseForStatement();
+  shared_ptr<Node> ParseVariableDeclaration();
+  shared_ptr<Node> ParseVariableDeclarator();
+  shared_ptr<Node> ParseForInStatement(shared_ptr<Node> left);
+  shared_ptr<Node> ParseForOfStatement(shared_ptr<Node> left, bool await);
+  shared_ptr<Node> ParseForInStatementOrForOfStatement();
 
   void
   InstallBinaryOpPrecendences(map<BinaryOperator, int> binary_op_precendences);
