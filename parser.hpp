@@ -33,7 +33,23 @@ enum class NodeType {
   kVariableDeclaration,
   kVariableDeclarator,
   kForInStatement,
-  kForOfStatement
+  kForOfStatement,
+  kThrowStatement,
+  kTryStatement,
+  kCatchClause,
+  kFunctionDeclaration,
+  kFunctionExpression,
+  kProgram,
+  kImportDeclaration,
+  kImportSpecifier,
+  kImportDefaultSpecifier,
+  kImportNamespaceSpecifier,
+  kExportSpecifier,
+  kExportNamespaceSpecifier,
+  kExportDefaultSpecifier,
+  kExportNamedDeclaration,
+  kExportDefaultDeclaration,
+  kExportAllDeclaration
 };
 
 class Node {
@@ -304,6 +320,169 @@ public:
         body_(move(body)) {}
 };
 
+class ThrowStatementNode : public Node {
+  shared_ptr<Node> argument_;
+
+public:
+  ThrowStatementNode(shared_ptr<Node> argument)
+      : Node(NodeType::kThrowStatement), argument_(move(argument)) {}
+};
+
+class CatchClauseNode : public Node {
+  shared_ptr<Node> param_;
+  shared_ptr<Node> body_;
+
+public:
+  CatchClauseNode(shared_ptr<Node> param, shared_ptr<Node> body)
+      : Node(NodeType::kCatchClause), param_(move(param)), body_(move(body)) {}
+};
+
+class TryStatementNode : public Node {
+  shared_ptr<Node> block_;
+  shared_ptr<Node> handler_;
+  shared_ptr<Node> finalizer_;
+
+public:
+  TryStatementNode(shared_ptr<Node> block, shared_ptr<Node> handler,
+                   shared_ptr<Node> finalizer)
+      : Node(NodeType::kTryStatement), block_(move(block)),
+        handler_(move(handler)), finalizer_(move(finalizer)) {}
+};
+
+class FunctionDeclarationNode : public Node {
+  shared_ptr<Node> id_;
+  vector<shared_ptr<Node>> params_;
+  shared_ptr<Node> body_;
+  bool generator_;
+  bool async_;
+
+public:
+  FunctionDeclarationNode(shared_ptr<Node> id, vector<shared_ptr<Node>> params,
+                          shared_ptr<Node> body, bool generator, bool async)
+      : Node(NodeType::kFunctionDeclaration), id_(move(id)),
+        params_(move(params)), body_(move(body)), generator_(generator),
+        async_(async) {}
+};
+
+class FunctionExpressionNode : public Node {
+  shared_ptr<Node> id_;
+  vector<shared_ptr<Node>> params_;
+  shared_ptr<Node> body_;
+  bool generator_;
+  bool async_;
+
+public:
+  FunctionExpressionNode(shared_ptr<Node> id, vector<shared_ptr<Node>> params,
+                         shared_ptr<Node> body, bool generator, bool async)
+      : Node(NodeType::kFunctionExpression), id_(move(id)),
+        params_(move(params)), body_(move(body)), generator_(generator),
+        async_(async) {}
+};
+
+enum class SoureType { kScript, kModule };
+
+class ProgramNode : public Node {
+  SoureType source_type_;
+};
+
+enum class ImportKind { kType, kTypeOf, kValue, kNull };
+
+class ImportDeclarationNode : public Node {
+  ImportKind import_kind_;
+  vector<shared_ptr<Node>> specifiers_;
+  shared_ptr<Node> source_;
+
+public:
+  ImportDeclarationNode(ImportKind import_kind,
+                        vector<shared_ptr<Node>> specifiers,
+                        shared_ptr<Node> source)
+      : Node(NodeType::kImportDeclaration), import_kind_(import_kind),
+        specifiers_(move(specifiers)), source_(move(source)) {}
+};
+
+class ImportSpecifierNode : public Node {
+  shared_ptr<Node> imported_;
+  shared_ptr<Node> local_;
+
+public:
+  ImportSpecifierNode(shared_ptr<Node> imported, shared_ptr<Node> local)
+      : Node(NodeType::kImportSpecifier), imported_(move(imported)),
+        local_(move(local)) {}
+};
+
+class ImportDefaultSpecifierNode : public Node {
+  shared_ptr<Node> local_;
+
+public:
+  ImportDefaultSpecifierNode(shared_ptr<Node> local)
+      : Node(NodeType::kImportDefaultSpecifier), local_(move(local)) {}
+};
+
+class ImportNamespaceSpecifierNode : public Node {
+  shared_ptr<Node> local_;
+
+public:
+  ImportNamespaceSpecifierNode(shared_ptr<Node> local)
+      : Node(NodeType::kImportNamespaceSpecifier), local_(move(local)) {}
+};
+
+class ExportSpecifierNode : public Node {
+  shared_ptr<Node> exported_;
+  shared_ptr<Node> local_;
+
+public:
+  ExportSpecifierNode(shared_ptr<Node> exported, shared_ptr<Node> local)
+      : Node(NodeType::kExportSpecifier), exported_(move(exported)),
+        local_(move(local)) {}
+};
+
+class ExportDefaultSpecifierNode : public Node {
+  shared_ptr<Node> local_;
+
+public:
+  ExportDefaultSpecifierNode(shared_ptr<Node> local)
+      : Node(NodeType::kExportDefaultSpecifier), local_(move(local)) {}
+};
+
+class ExportNamespaceSpecifierNode : public Node {
+  shared_ptr<Node> local_;
+
+public:
+  ExportNamespaceSpecifierNode(shared_ptr<Node> local)
+      : Node(NodeType::kExportNamespaceSpecifier), local_(move(local)) {}
+};
+
+class ExportNamedDeclarationNode : public Node {
+  shared_ptr<Node> declaration_;
+  vector<shared_ptr<Node>> specifiers_;
+  shared_ptr<Node> source_;
+
+public:
+  ExportNamedDeclarationNode(shared_ptr<Node> declaration,
+                             vector<shared_ptr<Node>> specifiers,
+                             shared_ptr<Node> source)
+      : Node(NodeType::kExportNamedDeclaration),
+        declaration_(move(declaration)), specifiers_(move(specifiers)),
+        source_(move(source)) {}
+};
+
+class ExportDefaultDeclarationNode : public Node {
+  shared_ptr<Node> declaration_;
+
+public:
+  ExportDefaultDeclarationNode(shared_ptr<Node> declaration)
+      : Node(NodeType::kExportDefaultDeclaration),
+        declaration_(move(declaration)) {}
+};
+
+class ExportAllDeclarationNode : public Node {
+  shared_ptr<Node> source_;
+
+public:
+  ExportAllDeclarationNode(shared_ptr<Node> source)
+      : Node(NodeType::kExportAllDeclaration), source_(move(source)) {}
+};
+
 class Parser {
   shared_ptr<Lexer> lexer_;
   map<BinaryOperator, int> binary_op_precendences_;
@@ -352,6 +531,24 @@ public:
   shared_ptr<Node> ParseForInStatement(shared_ptr<Node> left);
   shared_ptr<Node> ParseForOfStatement(shared_ptr<Node> left, bool await);
   shared_ptr<Node> ParseForInStatementOrForOfStatement();
+  shared_ptr<Node> ParseThrowStatement();
+  shared_ptr<Node> ParseTryStatement();
+  shared_ptr<Node> ParseCatchClause();
+  shared_ptr<Node> ParseFunctionExpression();
+  shared_ptr<Node> ParseFunctionDeclaration();
+  vector<shared_ptr<Node>> ParseFunctionParams();
+  shared_ptr<Node> ParseImportDeclaration();
+  shared_ptr<Node> ParseImportSpecifier();
+  shared_ptr<Node> ParseImportDefaultSpecifier();
+  shared_ptr<Node> ParseImportNamespaceSpecifier();
+  shared_ptr<Node> ParseExportNamedDeclarationOrExportAllDeclaration();
+  shared_ptr<Node> ParseExportSpecifier();
+  shared_ptr<Node> ParseExportDefaultSpecifier();
+  shared_ptr<Node> ParseExportNamespaceSpecifier();
+  shared_ptr<Node> ParseExportDefaultDeclaration();
+  shared_ptr<Node> ParseExportNamedDeclarationOrExportDefaultDeclaration();
+  shared_ptr<Node> ParseExportAllDeclaration();
+  shared_ptr<Node> ParseDeclaration();
 
   void
   InstallBinaryOpPrecendences(map<BinaryOperator, int> binary_op_precendences);

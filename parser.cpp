@@ -393,7 +393,7 @@ shared_ptr<Node> Parser::ParseForStatement() {
 shared_ptr<Node> Parser::ParseForInStatementOrForOfStatement() {
   lexer_->GetToken();
   bool await = false;
-  if(lexer_->current_token()==TokenType::kAwaitToken){
+  if (lexer_->current_token() == TokenType::kAwaitToken) {
     await = true;
     lexer_->GetToken();
   }
@@ -410,7 +410,7 @@ shared_ptr<Node> Parser::ParseForInStatementOrForOfStatement() {
     return ParseForInStatement(move(left));
   }
   case TokenType::kOfToken: {
-    return ParseForOfStatement(move(left),await);
+    return ParseForOfStatement(move(left), await);
   }
   default: {
     UNREACHABLE;
@@ -425,11 +425,239 @@ shared_ptr<Node> Parser::ParseForInStatement(shared_ptr<Node> left) {
   return make_shared<ForInStatementNode>(move(left), move(right), move(body));
 }
 
-shared_ptr<Node> Parser::ParseForOfStatement(shared_ptr<Node> left, bool await) {
+shared_ptr<Node> Parser::ParseForOfStatement(shared_ptr<Node> left,
+                                             bool await) {
   lexer_->GetToken();
   auto right = ParseExpression();
   auto body = ParseStatement();
-  return make_shared<ForOfStatementNode>(move(left), move(right), move(body),await);
+  return make_shared<ForOfStatementNode>(move(left), move(right), move(body),
+                                         await);
+}
+
+shared_ptr<Node> Parser::ParseThrowStatement() {
+  lexer_->GetToken();
+  auto argument = ParseExpression();
+  return make_shared<Node>(move(argument));
+}
+
+shared_ptr<Node> Parser::ParseCatchClause() {
+  lexer_->GetToken();
+  lexer_->GetToken();
+  auto param = ParseIdentifier();
+  lexer_->GetToken();
+  auto body = ParseStatement();
+  return make_shared<CatchClauseNode>(move(param), move(body));
+}
+
+shared_ptr<Node> Parser::ParseTryStatement() {
+  lexer_->GetToken();
+  auto block = ParseStatement();
+  shared_ptr<Node> handler = nullptr;
+  shared_ptr<Node> finalizer = nullptr;
+  if (lexer_->current_token() == TokenType::kCatchToken) {
+    handler = ParseCatchClause();
+  }
+  if (lexer_->current_token() == TokenType::kFinallyToken) {
+    lexer_->GetToken();
+    finalizer = ParseStatement();
+  }
+  return make_shared<TryStatementNode>(move(block), move(handler),
+                                       move(finalizer));
+}
+
+vector<shared_ptr<Node>> Parser::ParseFunctionParams() {
+  lexer_->GetToken();
+  vector<shared_ptr<Node>> params;
+  while (lexer_->current_token() != TokenType::kRightBraceToken) {
+    auto param = ParseIdentifier();
+    params.push_back(move(param));
+    if (lexer_->current_token() == TokenType::kCommaToken) {
+      lexer_->GetToken();
+    }
+  }
+  lexer_->GetToken();
+  return params;
+}
+
+shared_ptr<Node> Parser::ParseFunctionDeclaration() {
+  bool generator = false;
+  bool async = false;
+  if (lexer_->current_token() == TokenType::kAsyncToken) {
+    async = true;
+    lexer_->GetToken();
+  }
+  lexer_->GetToken();
+  if (lexer_->current_token() == TokenType::kMulToken) {
+    generator = true;
+    lexer_->GetToken();
+  }
+  auto id = ParseIdentifier();
+  auto params = ParseFunctionParams();
+  auto body = ParseStatement();
+  return make_shared<FunctionDeclarationNode>(move(id), move(params),
+                                              move(body), generator, async);
+}
+
+shared_ptr<Node> Parser::ParseFunctionExpression() {
+  bool generator = false;
+  bool async = false;
+  if (lexer_->current_token() == TokenType::kAsyncToken) {
+    async = true;
+    lexer_->GetToken();
+  }
+  lexer_->GetToken();
+  if (lexer_->current_token() == TokenType::kMulToken) {
+    generator = true;
+    lexer_->GetToken();
+  }
+  shared_ptr<Node> id = nullptr;
+  if (lexer_->current_token() != TokenType::kLeftBraceToken) {
+    id = ParseIdentifier();
+  }
+  auto params = ParseFunctionParams();
+  auto body = ParseStatement();
+  return make_shared<FunctionDeclarationNode>(move(id), move(params),
+                                              move(body), generator, async);
+}
+
+shared_ptr<Node> Parser::ParseImportSpecifier() {
+  auto imported = ParseIdentifier();
+  shared_ptr<Node> local = imported;
+  if (lexer_->current_token() == TokenType::kAsToken) {
+    lexer_->GetToken();
+    local = ParseIdentifier();
+  }
+  return make_shared<ImportSpecifierNode>(move(imported), move(local));
+}
+
+shared_ptr<Node> Parser::ParseImportDefaultSpecifier() {
+  auto local = ParseIdentifier();
+  return make_shared<ImportDefaultSpecifierNode>(move(local));
+}
+
+shared_ptr<Node> Parser::ParseImportNamespaceSpecifier() {
+  lexer_->GetToken();
+  lexer_->GetToken();
+  auto local = ParseIdentifier();
+  return make_shared<ImportNamespaceSpecifierNode>(move(local));
+}
+
+shared_ptr<Node> Parser::ParseImportDeclaration() {
+  lexer_->GetToken();
+  vector<shared_ptr<Node>> specifiers;
+  while (lexer_->current_token() != TokenType::kFromToken) {
+    if (lexer_->current_token() == TokenType::kMulToken) {
+      auto specifier = ParseImportNamespaceSpecifier();
+      specifiers.push_back(move(specifier));
+    } else if (lexer_->current_token() == TokenType::kIdentifierToken) {
+      auto specifier = ParseImportDefaultSpecifier();
+      specifiers.push_back(move(specifier));
+    } else if (lexer_->current_token() == TokenType::kLeftBraceToken) {
+      lexer_->GetToken();
+      while (lexer_->current_token() != TokenType::kRightBraceToken) {
+        auto specifier = ParseImportSpecifier();
+        specifiers.push_back(move(specifier));
+        if (lexer_->current_token() == TokenType::kCommaToken) {
+          lexer_->GetToken();
+        }
+      }
+    }
+    if (lexer_->current_token() == TokenType::kCommaToken) {
+      lexer_->GetToken();
+    }
+  }
+  lexer_->GetToken();
+  auto source = ParseStringLiteral();
+  return make_shared<Node>(ImportKind::kValue, move(specifiers), source);
+}
+
+shared_ptr<Node> Parser::ParseExportSpecifier() {
+  auto local = ParseIdentifier();
+  shared_ptr<Node> exported = local;
+  if (lexer_->current_token() == TokenType::kAsToken) {
+    lexer_->GetToken();
+    exported = ParseIdentifier();
+  }
+  return make_shared<ExportSpecifierNode>(move(exported), move(local));
+}
+
+shared_ptr<Node> Parser::ParseExportNamespaceSpecifier() {
+  lexer_->GetToken();
+  auto exported = ParseIdentifier();
+  return make_shared<ExportNamespaceSpecifierNode>(move(exported));
+}
+
+shared_ptr<Node> Parser::ParseExportNamedDeclarationOrExportAllDeclaration() {
+  vector<shared_ptr<Node>> specifiers;
+  shared_ptr<Node> declaration = nullptr;
+  shared_ptr<Node> source = nullptr;
+  if (lexer_->current_token() == TokenType::kLeftBraceToken) {
+    lexer_->GetToken();
+    while (lexer_->current_token() != TokenType::kRightBraceToken) {
+      auto specifier = ParseExportSpecifier();
+      specifiers.push_back(move(specifier));
+      if (lexer_->current_token() == TokenType::kCommaToken) {
+        lexer_->GetToken();
+      }
+    }
+  } else if (lexer_->current_token() == TokenType::kMulToken) {
+    lexer_->GetToken();
+    if (lexer_->current_token() == TokenType::kAsToken) {
+      auto specifier = ParseExportNamespaceSpecifier();
+      specifiers.push_back(move(specifier));
+    } else {
+      lexer_->GetToken();
+      auto source = ParseIdentifier();
+      return make_shared<ExportAllDeclarationNode>(move(source));
+    }
+  } else {
+    declaration = ParseDeclaration();
+  }
+  if (lexer_->current_token() == TokenType::kFromToken) {
+    lexer_->GetToken();
+    source = ParseIdentifier();
+  }
+  return make_shared<ExportNamespaceSpecifierNode>(
+      move(declaration), move(specifiers), move(source));
+}
+
+shared_ptr<Node> Parser::ParseExportDefaultDeclaration() {
+  lexer_->GetToken();
+  shared_ptr<Node> declaration = nullptr;
+  if (lexer_->current_token() == TokenType::kFunctionToken) {
+    declaration = ParseFunctionDeclaration();
+  } else {
+    declaration = ParseExpression();
+  }
+  return make_shared<Node>(move(declaration));
+}
+
+shared_ptr<Node>
+Parser::ParseExportNamedDeclarationOrExportDefaultDeclaration() {
+  lexer_->GetToken();
+  if (lexer_->current_token() == TokenType::kDefaultToken) {
+    return ParseExportDefaultDeclaration();
+  } else {
+    return ParseExportNamedDeclarationOrExportAllDeclaration();
+  }
+}
+
+shared_ptr<Node> Parser::ParseDeclaration() {
+  if (lexer_->current_token() == TokenType::kAsyncToken) {
+    return ParseFunctionDeclaration();
+  }
+  if (lexer_->current_token() == TokenType::kFunctionToken) {
+    return ParseFunctionDeclaration();
+  }
+  if (lexer_->current_token() == TokenType::kVarToken) {
+    return ParseVariableDeclaration();
+  }
+  if (lexer_->current_token() == TokenType::kConstToken) {
+    return ParseVariableDeclaration();
+  }
+  if (lexer_->current_token() == TokenType::kLetToken) {
+    return ParseVariableDeclaration();
+  }
 }
 
 shared_ptr<Node> Parser::Parse() {
