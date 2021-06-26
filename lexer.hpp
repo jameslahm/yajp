@@ -1,9 +1,10 @@
-#include "error.hpp"
+#pragma once
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
 #include <iostream>
 #include <istream>
+#include <iterator>
 #include <ostream>
 #include <sstream>
 #include <streambuf>
@@ -58,7 +59,9 @@ enum class TokenType {
   kImportToken,
   kExportToken,
   kAsToken,
-  kFunctionToken
+  kFunctionToken,
+  kLeftParenToken,
+  kRightParenToken
 };
 
 class Lexer {
@@ -80,7 +83,7 @@ public:
           current_char_ = EOF;
           break;
         }
-        stream_ >> current_char_;
+        current_char_ = stream_.get();
       } else {
         break;
       }
@@ -94,7 +97,7 @@ public:
           break;
         } else {
           value_ += current_char_;
-          stream_ >> current_char_;
+          current_char_ = stream_.get();
         }
       }
       if (value_ == "const") {
@@ -215,31 +218,31 @@ public:
         return current_token_;
       }
 
-      if(value_ == "from"){
+      if (value_ == "from") {
         current_token_ = TokenType::kFromToken;
         return current_token_;
       }
 
-      if(value_ == "import"){
-        current_token_= TokenType::kImportToken;
+      if (value_ == "import") {
+        current_token_ = TokenType::kImportToken;
         return current_token_;
       }
 
-      if(value_ == "export"){
+      if (value_ == "export") {
         current_token_ = TokenType::kExportToken;
         return current_token_;
       }
 
-      if(value_=="as"){
+      if (value_ == "as") {
         current_token_ = TokenType::kAsToken;
         return current_token_;
       }
 
-      if(value_ == "function"){
+      if (value_ == "function") {
         current_token_ = TokenType::kFunctionToken;
         return current_token_;
       }
-      
+
       current_token_ = TokenType::kIdentifierToken;
       return current_token_;
     }
@@ -252,7 +255,7 @@ public:
           break;
         } else {
           value_ += current_char_;
-          stream_ >> current_char_;
+          current_char_ = stream_.get();
         }
       }
       current_token_ = TokenType::kNumericToken;
@@ -260,91 +263,106 @@ public:
     }
 
     if (current_char_ == '"') {
-      stream_ >> current_char_;
+      current_char_ = stream_.get();
       while (current_char_ != '"') {
         if (stream_.eof()) {
           current_char_ = EOF;
           break;
         } else {
           value_ += current_char_;
-          stream_ >> current_char_;
+          current_char_ = stream_.get();
         }
       }
-      stream_ >> current_char_;
+      current_char_ = stream_.get();
       current_token_ = TokenType::kStringToken;
       return current_token_;
     }
 
     if (current_char_ == '+') {
-      stream_ >> current_char_;
+      current_char_ = stream_.get();
       current_token_ = TokenType::kAddToken;
       return current_token_;
     }
 
     if (current_char_ == '-') {
-      stream_ >> current_char_;
+      current_char_ = stream_.get();
       current_token_ = TokenType::kSubToken;
       return current_token_;
     }
 
     if (current_char_ == '*') {
-      stream_ >> current_char_;
+      current_char_ = stream_.get();
       current_token_ = TokenType::kMulToken;
       return current_token_;
     }
 
     if (current_char_ == '/') {
-      stream_ >> current_char_;
+      current_char_ = stream_.get();
       current_token_ = TokenType::kDivToken;
       return current_token_;
     }
 
     if (current_char_ == '!') {
-      stream_ >> current_char_;
+      current_char_ = stream_.get();
       current_token_ = TokenType::kExclaToken;
       return current_token_;
     }
 
     if (current_char_ == '~') {
-      stream_ >> current_char_;
+      current_char_ = stream_.get();
       current_token_ = TokenType::kNegToken;
       return current_token_;
     }
 
     if (current_char_ == '{') {
-      stream_ >> current_char_;
+      current_char_ = stream_.get();
       current_token_ = TokenType::kLeftBraceToken;
       return current_token_;
     }
 
     if (current_char_ == '}') {
-      stream_ >> current_char_;
+      current_char_ = stream_.get();
       current_token_ = TokenType::kRightBraceToken;
       return current_token_;
     }
 
     if (current_char_ == ';') {
-      stream_ >> current_char_;
+      current_char_ = stream_.get();
       current_token_ = TokenType::kSemiColonToken;
       return current_token_;
     }
 
     if (current_char_ == ':') {
-      stream_ >> current_char_;
+      current_char_ = stream_.get();
       current_token_ = TokenType::kColonToken;
       return current_token_;
     }
 
     if (current_char_ == '=') {
-      stream_ >> current_char_;
+      current_char_ = stream_.get();
       if (current_char_ == '=') {
-        stream_ >> current_char_;
+        current_char_ = stream_.get();
         if (current_char_ == '=') {
-          return TokenType::kEqualEqualEqualToken;
+          current_token_ = TokenType::kEqualEqualEqualToken;
+          return current_token_;
         }
-        return TokenType::kEqualEqualToken;
+        current_token_ = TokenType::kEqualEqualToken;
+        return current_token_;
       }
-      return TokenType::kEqualToken;
+      current_token_ = TokenType::kEqualToken;
+      return current_token_;
+    }
+
+    if(current_char_ == '('){
+      current_char_ = stream_.get();
+      current_token_ = TokenType::kLeftParenToken;
+      return current_token_;
+    }
+
+    if(current_char_ == ')'){
+      current_char_ = stream_.get();
+      current_token_ = TokenType::kRightParenToken;
+      return current_token_;
     }
 
     if (current_char_ == EOF) {
@@ -352,8 +370,7 @@ public:
       return current_token_;
     }
 
-    cout << kUnkownTokenType << " " << current_char_ << endl;
-    stream_ >> current_char_;
+    current_char_ = stream_.get();
     return GetToken();
   }
 

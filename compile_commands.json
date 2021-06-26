@@ -1,25 +1,22 @@
 [
 {
   "directory": "/home/wangao/projects/yajp/build",
-  "command": "/usr/bin/c++   -I/home/wangao/projects/emsdk/upstream/emscripten/cache/sysroot/include -I.  -g   -o CMakeFiles/yajp.dir/main.cpp.o -c /home/wangao/projects/yajp/main.cpp",
+  "command": "/home/wangao/projects/emsdk/upstream/emscripten/em++   @CMakeFiles/yajp.dir/includes_CXX.rsp -I/home/wangao/projects/emsdk/upstream/emscripten/cache/sysroot/include   -std=gnu++17 -o CMakeFiles/yajp.dir/main.cpp.o -c /home/wangao/projects/yajp/main.cpp",
   "file": "/home/wangao/projects/yajp/main.cpp"
 },
-
 {
   "directory": "/home/wangao/projects/yajp/build",
-  "command": "/usr/bin/c++   -I/home/wangao/projects/emsdk/upstream/include -I.  -g   -o CMakeFiles/yajp.dir/parser.cpp.o -c /home/wangao/projects/yajp/parser.cpp",
+  "command": "/home/wangao/projects/emsdk/upstream/emscripten/em++   @CMakeFiles/yajp.dir/includes_CXX.rsp -std=gnu++17 -o CMakeFiles/yajp.dir/parser.cpp.o -c /home/wangao/projects/yajp/parser.cpp",
   "file": "/home/wangao/projects/yajp/parser.cpp"
 },
-
 {
   "directory": "/home/wangao/projects/yajp/build",
-  "command": "/usr/bin/c++   -I/home/wangao/projects/emsdk/upstream/include -I.  -g   -o CMakeFiles/yajp.dir/lexer.cpp.o -c /home/wangao/projects/yajp/lexer.cpp",
+  "command": "/home/wangao/projects/emsdk/upstream/emscripten/em++   @CMakeFiles/yajp.dir/includes_CXX.rsp -std=gnu++17 -o CMakeFiles/yajp.dir/lexer.cpp.o -c /home/wangao/projects/yajp/lexer.cpp",
   "file": "/home/wangao/projects/yajp/lexer.cpp"
 },
-
 {
   "directory": "/home/wangao/projects/yajp/build",
-  "command": "/usr/bin/c++   -I/home/wangao/projects/emsdk/upstream/include -I.  -g   -o CMakeFiles/yajp.dir/error.cpp.o -c /home/wangao/projects/yajp/error.cpp",
+  "command": "/home/wangao/projects/emsdk/upstream/emscripten/em++   @CMakeFiles/yajp.dir/includes_CXX.rsp -std=gnu++17 -o CMakeFiles/yajp.dir/error.cpp.o -c /home/wangao/projects/yajp/error.cpp",
   "file": "/home/wangao/projects/yajp/error.cpp"
 }
 ]

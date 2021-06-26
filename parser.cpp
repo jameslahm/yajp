@@ -1,5 +1,6 @@
 #include "parser.hpp"
 #include "util.hpp"
+#include <cstdio>
 #include <cstdlib>
 #include <memory>
 #include <utility>
@@ -119,10 +120,40 @@ shared_ptr<Node> Parser::ParseIdentifier() {
   return make_shared<IdentifierNode>(name);
 }
 
+shared_ptr<Node> Parser::ParseCallExpression(shared_ptr<Node> callee) {
+  auto arguments = ParseCallExpressionArguments();
+  return make_shared<CallExpressionNode>(move(callee), move(arguments));
+}
+
+vector<shared_ptr<Node>> Parser::ParseCallExpressionArguments() {
+  lexer_->GetToken();
+  vector<shared_ptr<Node>> params;
+  while (lexer_->current_token() != TokenType::kRightParenToken) {
+    auto param = ParseIdentifier();
+    params.push_back(move(param));
+    if (lexer_->current_token() == TokenType::kCommaToken) {
+      lexer_->GetToken();
+    }
+  }
+  lexer_->GetToken();
+  return params;
+}
+
+shared_ptr<Node> Parser::ParseIdentifierOrCallExpression() {
+  auto name = lexer_->value();
+  auto identifier = make_shared<IdentifierNode>(name);
+  lexer_->GetToken();
+  if (lexer_->current_token() == TokenType::kLeftParenToken) {
+    return ParseCallExpression(move(identifier));
+  } else {
+    return identifier;
+  }
+}
+
 shared_ptr<Node> Parser::ParseUnaryExpression() {
   switch (lexer_->current_token()) {
   case TokenType::kIdentifierToken: {
-    return ParseIdentifier();
+    return ParseIdentifierOrCallExpression();
   }
   case TokenType::kNumericToken: {
     return ParseNumericLiteral();
@@ -181,6 +212,12 @@ shared_ptr<Node> Parser::ParseUnaryExpression() {
 }
 
 shared_ptr<Node> Parser::ParseExpression() {
+  if(lexer_->current_token()==TokenType::kLeftParenToken){
+    lexer_->GetToken();
+    auto expression = ParseExpression();
+    lexer_->GetToken();
+    return make_shared<ParenthesizedExpressionNode>(move(expression));
+  }
   auto left = ParseUnaryExpression();
   return ParseBinaryExpression(move(left), -1);
 }
@@ -207,6 +244,29 @@ shared_ptr<Node> Parser::ParseStatement() {
   case TokenType::kSemiColonToken: {
     return ParseEmptyStatement();
   }
+  case TokenType::kFunctionToken: {
+    return ParseFunctionDeclaration();
+  }
+  case TokenType::kVarToken:
+  case TokenType::kConstToken:
+  case TokenType::kLetToken: {
+    return ParseVariableDeclaration();
+  }
+  case TokenType::kLeftBraceToken:{
+    return ParseBlockStatement();
+  }
+  case TokenType::kReturnToken: {
+    return ParseReturnStatement();
+  }
+  case TokenType::kThrowToken:{
+    return ParseThrowStatement();
+  }
+  case TokenType::kContinueToken:{
+    return ParseContinueStatement();
+  }
+  case TokenType::kBreakToken:{
+    return ParseBreakStatement();
+  }
   default: {
     return ParseExpressionStatement();
   }
@@ -214,6 +274,7 @@ shared_ptr<Node> Parser::ParseStatement() {
 }
 
 shared_ptr<Node> Parser::ParseBlockStatement() {
+  lexer_->GetToken();
   vector<shared_ptr<Node>> body;
   while (lexer_->current_token() != TokenType::kRightBraceToken) {
     auto statement = ParseStatement();
@@ -331,6 +392,7 @@ shared_ptr<Node> Parser::ParseVariableDeclarator() {
   auto id = ParseIdentifier();
   shared_ptr<Node> init = nullptr;
   if (lexer_->current_token() == TokenType::kEqualToken) {
+    lexer_->GetToken();
     init = ParseExpression();
   }
   return make_shared<VariableDeclaratorNode>(move(id), move(init));
@@ -343,7 +405,10 @@ shared_ptr<Node> Parser::ParseVariableDeclaration() {
   while (1) {
     auto declaration = ParseVariableDeclarator();
     declarations.push_back(move(declaration));
-    if (lexer_->current_token() != TokenType::kCommaToken) {
+    if (lexer_->current_token() == TokenType::kCommaToken) {
+      lexer_->GetToken();
+      continue;
+    } else {
       break;
     }
   }
@@ -437,7 +502,7 @@ shared_ptr<Node> Parser::ParseForOfStatement(shared_ptr<Node> left,
 shared_ptr<Node> Parser::ParseThrowStatement() {
   lexer_->GetToken();
   auto argument = ParseExpression();
-  return make_shared<Node>(move(argument));
+  return make_shared<ThrowStatementNode>(move(argument));
 }
 
 shared_ptr<Node> Parser::ParseCatchClause() {
@@ -468,7 +533,7 @@ shared_ptr<Node> Parser::ParseTryStatement() {
 vector<shared_ptr<Node>> Parser::ParseFunctionParams() {
   lexer_->GetToken();
   vector<shared_ptr<Node>> params;
-  while (lexer_->current_token() != TokenType::kRightBraceToken) {
+  while (lexer_->current_token() != TokenType::kRightParenToken) {
     auto param = ParseIdentifier();
     params.push_back(move(param));
     if (lexer_->current_token() == TokenType::kCommaToken) {
@@ -511,7 +576,7 @@ shared_ptr<Node> Parser::ParseFunctionExpression() {
     lexer_->GetToken();
   }
   shared_ptr<Node> id = nullptr;
-  if (lexer_->current_token() != TokenType::kLeftBraceToken) {
+  if (lexer_->current_token() != TokenType::kLeftParenToken) {
     id = ParseIdentifier();
   }
   auto params = ParseFunctionParams();
@@ -568,7 +633,9 @@ shared_ptr<Node> Parser::ParseImportDeclaration() {
   }
   lexer_->GetToken();
   auto source = ParseStringLiteral();
-  return make_shared<Node>(ImportKind::kValue, move(specifiers), source);
+  SKIP_SEMICOLON;
+  return make_shared<ImportDeclarationNode>(ImportKind::kValue,
+                                            move(specifiers), source);
 }
 
 shared_ptr<Node> Parser::ParseExportSpecifier() {
@@ -617,7 +684,8 @@ shared_ptr<Node> Parser::ParseExportNamedDeclarationOrExportAllDeclaration() {
     lexer_->GetToken();
     source = ParseIdentifier();
   }
-  return make_shared<ExportNamespaceSpecifierNode>(
+  SKIP_SEMICOLON;
+  return make_shared<ExportNamedDeclarationNode>(
       move(declaration), move(specifiers), move(source));
 }
 
@@ -629,7 +697,7 @@ shared_ptr<Node> Parser::ParseExportDefaultDeclaration() {
   } else {
     declaration = ParseExpression();
   }
-  return make_shared<Node>(move(declaration));
+  return make_shared<ExportDefaultDeclarationNode>(move(declaration));
 }
 
 shared_ptr<Node>
@@ -658,9 +726,27 @@ shared_ptr<Node> Parser::ParseDeclaration() {
   if (lexer_->current_token() == TokenType::kLetToken) {
     return ParseVariableDeclaration();
   }
+  UNREACHABLE;
+}
+
+shared_ptr<Node> Parser::ParseProgram() {
+  SoureType source_type = SoureType::kModule;
+  vector<shared_ptr<Node>> body;
+  while (lexer_->current_token() != TokenType::kEofToken) {
+    shared_ptr<Node> node;
+    if (lexer_->current_token() == TokenType::kImportToken) {
+      node = ParseImportDeclaration();
+    } else if (lexer_->current_token() == TokenType::kExportToken) {
+      node = ParseExportNamedDeclarationOrExportAllDeclaration();
+    } else {
+      node = ParseStatement();
+    }
+    body.push_back(move(node));
+  }
+  return make_shared<ProgramNode>(source_type, move(body));
 }
 
 shared_ptr<Node> Parser::Parse() {
   lexer_->GetToken();
-  return ParseExpression();
+  return ParseProgram();
 }
