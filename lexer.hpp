@@ -1,13 +1,5 @@
 #pragma once
-#include <algorithm>
-#include <cctype>
-#include <cstdio>
-#include <iostream>
-#include <istream>
-#include <iterator>
-#include <ostream>
 #include <sstream>
-#include <streambuf>
 #include <string>
 using namespace std;
 

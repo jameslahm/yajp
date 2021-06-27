@@ -2,3 +2,4 @@ build
 .cache
 check
 public
+.hdoc.toml
