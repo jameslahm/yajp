@@ -17,6 +17,9 @@ target_include_directories(yajp PUBLIC
 find_package(magic_enum CONFIG REQUIRED)
 target_link_libraries(yajp PRIVATE magic_enum::magic_enum)
 
+find_package(fmt CONFIG REQUIRED)
+target_link_libraries(yajp PRIVATE fmt::fmt)
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)

@@ -3,4 +3,8 @@
     "CMAKE_TOOLCHAIN_FILE": "${workspaceFolder}/vcpkg/scripts/buildsystems/vcpkg.cmake",
     "VCPKG_TARGET_TRIPLET": "wasm32-emscripten"
   },
+  "C_Cpp.intelliSenseEngine": "Default",
+  "files.associations": {
+    "string": "cpp"
+  }
 }

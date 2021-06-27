@@ -27,7 +27,8 @@ EMSCRIPTEN_BINDINGS(nodes) {
   class_<Node>("Node")
   .constructor<NodeType>()
   .smart_ptr<std::shared_ptr<Node>>("Node")
-  .property("type",&Node::type);
+  .property("type",&Node::type)
+  .function("GenJs",&Node::GenJs);
 
   BN(IdentifierNode) 
   BC(string)
@@ -194,6 +195,14 @@ EMSCRIPTEN_BINDINGS(nodes) {
   BC(SN)
   BP(ParenthesizedExpressionNode,expression);
 
+  BN(FunctionDeclarationNode)
+  BC(SN,VSN,SN,bool,bool)
+  BP(FunctionDeclarationNode,id)
+  BP(FunctionDeclarationNode,params)
+  BP(FunctionDeclarationNode,body)
+  BP(FunctionDeclarationNode,generator)
+  BP(FunctionDeclarationNode,async);
+
   class_<Parser>("Parser").constructor<string>().function("Parse",
                                                           &Parser::Parse);
 
@@ -253,42 +262,46 @@ EMSCRIPTEN_BINDINGS(node_types){
     BINDING_NODE_TYPE_ENUM(kExportAllDeclaration);
 }
 
-#define BINDING_BINARY_OP_ENUM(V) \
-  .value(#V, BinaryOperator::V)
+#define BINDING_BINARY_OP(V) \
+  .class_property(#V,&BinaryOperator::V)
 
 EMSCRIPTEN_BINDINGS(binary_ops){
-  enum_<BinaryOperator>("BinaryOperator")
-    BINDING_BINARY_OP_ENUM(kEqualEqualOp)
-    BINDING_BINARY_OP_ENUM(kNotEqualOp)
-    BINDING_BINARY_OP_ENUM(kEqualEqualEqualOp)
-    BINDING_BINARY_OP_ENUM(kNotEqualEqualOp)
-    BINDING_BINARY_OP_ENUM(kLessThanOp)
-    BINDING_BINARY_OP_ENUM(kLessEqualOp)
-    BINDING_BINARY_OP_ENUM(kGreaterThanOp)
-    BINDING_BINARY_OP_ENUM(kGreaterEqualOp)
-    BINDING_BINARY_OP_ENUM(kLessLessOp)
-    BINDING_BINARY_OP_ENUM(kGreaterGreaterOp)
-    BINDING_BINARY_OP_ENUM(kGreaterGreaterGreaterOp)
-    BINDING_BINARY_OP_ENUM(kAddOp)
-    BINDING_BINARY_OP_ENUM(kSubOp)
-    BINDING_BINARY_OP_ENUM(kMulOp)
-    BINDING_BINARY_OP_ENUM(kDivOp)
-    BINDING_BINARY_OP_ENUM(kModOp);
+  class_<BinaryOperator>("BinaryOperator")
+    .property("source",&BinaryOperator::source)
+    BINDING_BINARY_OP(kEqualEqualOp)
+    BINDING_BINARY_OP(kNotEqualOp)
+    BINDING_BINARY_OP(kEqualEqualEqualOp)
+    BINDING_BINARY_OP(kNotEqualEqualOp)
+    BINDING_BINARY_OP(kLessThanOp)
+    BINDING_BINARY_OP(kLessEqualOp)
+    BINDING_BINARY_OP(kGreaterThanOp)
+    BINDING_BINARY_OP(kGreaterEqualOp)
+    BINDING_BINARY_OP(kLessLessOp)
+    BINDING_BINARY_OP(kGreaterGreaterOp)
+    BINDING_BINARY_OP(kGreaterGreaterGreaterOp)
+    BINDING_BINARY_OP(kAddOp)
+    BINDING_BINARY_OP(kSubOp)
+    BINDING_BINARY_OP(kMulOp)
+    BINDING_BINARY_OP(kDivOp)
+    BINDING_BINARY_OP(kModOp);
 }
 
-#define BINDING_UUNARY_OP_ENUM(V) \
-  .value(#V, UnaryOperator::V)
+#define BINDING_UNARY_OP(V) \
+  .class_property(#V,&UnaryOperator::V)
 
 EMSCRIPTEN_BINDINGS(unary_ops){
-  enum_<UnaryOperator>("UnaryOperator")
-    BINDING_UUNARY_OP_ENUM(kSubOp)
-    BINDING_UUNARY_OP_ENUM(kAddOp)
-    BINDING_UUNARY_OP_ENUM(kExclaOp)
-    BINDING_UUNARY_OP_ENUM(kNegOp)
-    BINDING_UUNARY_OP_ENUM(kTypeOfOp)
-    BINDING_UUNARY_OP_ENUM(kVoidOp)
-    BINDING_UUNARY_OP_ENUM(kDeleteOp)
-    BINDING_UUNARY_OP_ENUM(kThrowOp);
+  class_<UnaryOperator>("UnaryOperator")
+    .constructor<string>()
+    .property("source",&UnaryOperator::source)
+    BINDING_UNARY_OP(kSubOp)
+    BINDING_UNARY_OP(kSubOp)
+    BINDING_UNARY_OP(kAddOp)
+    BINDING_UNARY_OP(kExclaOp)
+    BINDING_UNARY_OP(kNegOp)
+    BINDING_UNARY_OP(kTypeOfOp)
+    BINDING_UNARY_OP(kVoidOp)
+    BINDING_UNARY_OP(kDeleteOp)
+    BINDING_UNARY_OP(kThrowOp);
 }
 
 
