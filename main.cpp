@@ -8,13 +8,14 @@
 using namespace emscripten;
 
 #define BINDING_PROPERTY(T,P) \
-  .property(#P,&T::P)
+  .property(#P,&T::P,&T::set_##P)
 
 #define BINDING_CONSTRUCTOR(...) \
   .constructor<__VA_ARGS__>()
 
 #define BINDING_NODE(T) \
-  class_<T,base<Node>>(#T)
+  class_<T,base<Node>>(#T) \
+  .smart_ptr<std::shared_ptr<T>>(#T) \
 
 // Binding code
 EMSCRIPTEN_BINDINGS(nodes) {
@@ -28,7 +29,8 @@ EMSCRIPTEN_BINDINGS(nodes) {
   .constructor<NodeType>()
   .smart_ptr<std::shared_ptr<Node>>("Node")
   .property("type",&Node::type)
-  .function("GenJs",&Node::GenJs);
+  .function("GenJs",&Node::GenJs)
+  .function("Accept",&Node::Accept);
 
   BN(IdentifierNode) 
   BC(string)
@@ -66,6 +68,7 @@ EMSCRIPTEN_BINDINGS(nodes) {
   BN(BlockStatementNode)
   BC(VSN)
   BP(BlockStatementNode,body);
+
 
   BN(DebuggerStatementNode)
   BC();
@@ -137,7 +140,7 @@ EMSCRIPTEN_BINDINGS(nodes) {
   BP(ForOfStatementNode,await);
 
   BN(ProgramNode)
-  BC(SoureType,VSN)
+  BC(SourceType,VSN)
   BP(ProgramNode,source_type)
   BP(ProgramNode,body);
 
@@ -212,7 +215,8 @@ EMSCRIPTEN_BINDINGS(nodes) {
 }
 
 EMSCRIPTEN_BINDINGS(stl_wrappers) {
-    register_vector<shared_ptr<Node>>("vector<shared_ptr<Node>>");
+    register_vector<shared_ptr<Node>>("vector<shared_ptr<Node>>")
+    .function("pop_back",&vector<shared_ptr<Node>>::pop_back);
 }
 
 #define BINDING_NODE_TYPE_ENUM(V) \
@@ -305,3 +309,23 @@ EMSCRIPTEN_BINDINGS(unary_ops){
 }
 
 
+#define WP(V) \
+  void visit##V(shared_ptr<V> node){\
+    return call<void>("visit"#V,node);\
+  }\
+
+struct VisitorWrapper : public wrapper<Visitor> {
+  EMSCRIPTEN_WRAPPER(VisitorWrapper);
+  NODES(WP)
+};
+
+#define BF(V)\
+  .function("visit"#V, optional_override([](Visitor& self, shared_ptr<V> node) {\
+    return self.Visitor::visit##V(node);\
+  }))\
+
+EMSCRIPTEN_BINDINGS(visitor) {
+  class_<Visitor>("Visitor")
+    .allow_subclass<VisitorWrapper>("VisitorWrapper")
+    NODES(BF);
+}

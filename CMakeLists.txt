@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(EMSCRIPTEN_DIR "/home/wangao/projects/emsdk/upstream")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/public")
-add_executable(yajp main.cpp parser.cpp lexer.cpp)
+add_executable(yajp main.cpp parser.cpp lexer.cpp visitor.cpp)
 
 set_target_properties(yajp PROPERTIES LINK_FLAGS "--bind")
 target_include_directories(yajp PUBLIC

@@ -912,7 +912,7 @@ shared_ptr<Node> Parser::ParseDeclaration()
 
 shared_ptr<Node> Parser::ParseProgram()
 {
-  SoureType source_type = SoureType::kModule;
+  SourceType source_type = SourceType::kModule;
   vector<shared_ptr<Node>> body;
   while (lexer_->current_token() != TokenType::kEofToken)
   {
