@@ -12,21 +12,25 @@
     lexer_->GetToken();                                      \
   }
 
-shared_ptr<Node> Parser::ParseStringLiteral()
+#define SN shared_ptr<Node>
+#define VSN vector<SN>
+#define SVSN shared_ptr<VSN>
+
+SN Parser::ParseStringLiteral()
 {
   auto value = lexer_->value();
   lexer_->GetToken();
   return make_shared<StringLiteralNode>(value);
 }
 
-shared_ptr<Node> Parser::ParseNumericLiteral()
+SN Parser::ParseNumericLiteral()
 {
   auto value = strtod(lexer_->value().c_str(), nullptr);
   lexer_->GetToken();
   return make_shared<NumericLiteralNode>(value);
 }
 
-shared_ptr<Node> Parser::ParseBooleanLiteral()
+SN Parser::ParseBooleanLiteral()
 {
   auto value_str = lexer_->value();
   lexer_->GetToken();
@@ -40,22 +44,22 @@ shared_ptr<Node> Parser::ParseBooleanLiteral()
   }
 }
 
-shared_ptr<Node> Parser::ParseNullLiteral()
+SN Parser::ParseNullLiteral()
 {
   lexer_->GetToken();
   return make_shared<NullLiteralNode>();
 }
 
-void Parser::InstallBinaryOpPrecendences(
-    map<BinaryOperator, int> binary_op_precendences)
+void Parser::InstallBinaryOpPrecedences(
+    map<BinaryOperator, int> binary_op_precedences)
 {
-  binary_op_precendences_ = binary_op_precendences;
+  binary_op_precedences_ = binary_op_precedences;
 }
 
-int Parser::GetBinaryOpPrecendence(BinaryOperator op)
+int Parser::GetBinaryOpPrecedence(BinaryOperator op)
 {
-  auto iter = binary_op_precendences_.find(op);
-  if (iter != binary_op_precendences_.end())
+  auto iter = binary_op_precedences_.find(op);
+  if (iter != binary_op_precedences_.end())
   {
     return iter->second;
   }
@@ -119,16 +123,16 @@ bool Parser::CheckIsBianryOp(TokenType token)
   }
 }
 
-shared_ptr<Node> Parser::ParseBinaryExpression(shared_ptr<Node> left,
-                                               int precendence)
+SN Parser::ParseBinaryExpression(SN left,
+                                               int precedence)
 {
   while (1)
   {
     if (CheckIsBianryOp(lexer_->current_token()))
     {
       auto op = GetBinaryOpFromToken(lexer_->current_token());
-      auto next_precendence = GetBinaryOpPrecendence(op);
-      if (next_precendence <= precendence)
+      auto next_precedence = GetBinaryOpPrecedence(op);
+      if (next_precedence <= precedence)
       {
         return left;
       }
@@ -137,7 +141,7 @@ shared_ptr<Node> Parser::ParseBinaryExpression(shared_ptr<Node> left,
         lexer_->GetToken();
         auto next_left = ParseUnaryExpression();
         auto next_right =
-            ParseBinaryExpression(move(next_left), next_precendence);
+            ParseBinaryExpression(move(next_left), next_precedence);
         left =
             make_shared<BinaryExpressionNode>(op, move(left), move(next_right));
       }
@@ -149,27 +153,27 @@ shared_ptr<Node> Parser::ParseBinaryExpression(shared_ptr<Node> left,
   }
 }
 
-shared_ptr<Node> Parser::ParseIdentifier()
+SN Parser::ParseIdentifier()
 {
   auto name = lexer_->value();
   lexer_->GetToken();
   return make_shared<IdentifierNode>(name);
 }
 
-shared_ptr<Node> Parser::ParseCallExpression(shared_ptr<Node> callee)
+SN Parser::ParseCallExpression(SN callee)
 {
   auto arguments = ParseCallExpressionArguments();
   return make_shared<CallExpressionNode>(move(callee), move(arguments));
 }
 
-vector<shared_ptr<Node>> Parser::ParseCallExpressionArguments()
+SVSN Parser::ParseCallExpressionArguments()
 {
   lexer_->GetToken();
-  vector<shared_ptr<Node>> params;
+  SVSN params = make_shared<VSN>();
   while (lexer_->current_token() != TokenType::kRightParenToken)
   {
     auto param = ParseIdentifier();
-    params.push_back(move(param));
+    params->push_back(move(param));
     if (lexer_->current_token() == TokenType::kCommaToken)
     {
       lexer_->GetToken();
@@ -179,7 +183,7 @@ vector<shared_ptr<Node>> Parser::ParseCallExpressionArguments()
   return params;
 }
 
-shared_ptr<Node> Parser::ParseIdentifierOrCallExpression()
+SN Parser::ParseIdentifierOrCallExpression()
 {
   auto name = lexer_->value();
   auto identifier = make_shared<IdentifierNode>(name);
@@ -194,7 +198,7 @@ shared_ptr<Node> Parser::ParseIdentifierOrCallExpression()
   }
 }
 
-shared_ptr<Node> Parser::ParseUnaryExpression()
+SN Parser::ParseUnaryExpression()
 {
   switch (lexer_->current_token())
   {
@@ -276,33 +280,33 @@ shared_ptr<Node> Parser::ParseUnaryExpression()
   }
 }
 
-shared_ptr<Node> Parser::ParseExpression()
+SN Parser::ParseExpression()
 {
   auto left = ParseUnaryExpression();
   return ParseBinaryExpression(move(left), -1);
 }
 
-shared_ptr<Node> Parser::ParseExpressionStatement()
+SN Parser::ParseExpressionStatement()
 {
   auto expression = ParseExpression();
   SKIP_SEMICOLON;
   return make_shared<ExpressionStatementNode>(move(expression));
 }
 
-shared_ptr<Node> Parser::ParseEmptyStatement()
+SN Parser::ParseEmptyStatement()
 {
   SKIP_SEMICOLON;
   return make_shared<EmptyStatementNode>();
 }
 
-shared_ptr<Node> Parser::ParseDebuggerStatement()
+SN Parser::ParseDebuggerStatement()
 {
   lexer_->GetToken();
   SKIP_SEMICOLON;
   return make_shared<DebuggerStatementNode>();
 }
 
-shared_ptr<Node> Parser::ParseStatement()
+SN Parser::ParseStatement()
 {
   switch (lexer_->current_token())
   {
@@ -347,20 +351,20 @@ shared_ptr<Node> Parser::ParseStatement()
   }
 }
 
-shared_ptr<Node> Parser::ParseBlockStatement()
+SN Parser::ParseBlockStatement()
 {
   lexer_->GetToken();
-  vector<shared_ptr<Node>> body;
+  SVSN body = make_shared<VSN>();
   while (lexer_->current_token() != TokenType::kRightBraceToken)
   {
     auto statement = ParseStatement();
-    body.push_back(move(statement));
+    body->push_back(move(statement));
   }
   lexer_->GetToken();
   return make_shared<BlockStatementNode>(move(body));
 }
 
-shared_ptr<Node> Parser::ParseReturnStatement()
+SN Parser::ParseReturnStatement()
 {
   lexer_->GetToken();
   auto argument = ParseExpression();
@@ -368,28 +372,28 @@ shared_ptr<Node> Parser::ParseReturnStatement()
   return make_shared<ReturnStatementNode>(move(argument));
 }
 
-shared_ptr<Node> Parser::ParseContinueStatement()
+SN Parser::ParseContinueStatement()
 {
   lexer_->GetToken();
   SKIP_SEMICOLON;
   return make_shared<ContinueStatementNode>();
 }
 
-shared_ptr<Node> Parser::ParseBreakStatement()
+SN Parser::ParseBreakStatement()
 {
   lexer_->GetToken();
   SKIP_SEMICOLON;
   return make_shared<BreakStatementNode>();
 }
 
-shared_ptr<Node> Parser::ParseIfStatement()
+SN Parser::ParseIfStatement()
 {
   lexer_->GetToken();
   lexer_->GetToken();
   auto test = ParseExpression();
   lexer_->GetToken();
   auto consequent = ParseStatement();
-  shared_ptr<Node> alternate = nullptr;
+  SN alternate = nullptr;
   if (lexer_->current_token() == TokenType::kElseToken)
   {
     lexer_->GetToken();
@@ -399,27 +403,27 @@ shared_ptr<Node> Parser::ParseIfStatement()
                                       move(alternate));
 }
 
-shared_ptr<Node> Parser::ParseSwitchNodeStatement()
+SN Parser::ParseSwitchNodeStatement()
 {
   lexer_->GetToken();
-  shared_ptr<Node> test = nullptr;
+  SN test = nullptr;
   if (lexer_->current_token() != TokenType::kColonToken)
   {
     test = ParseExpression();
   }
   lexer_->GetToken();
-  vector<shared_ptr<Node>> consequent;
+  SVSN consequent = make_shared<VSN>();
   while (lexer_->current_token() != TokenType::kCaseToken &&
          lexer_->current_token() != TokenType::kDefaultToken &&
          lexer_->current_token() != TokenType::kRightBraceToken)
   {
     auto statement = ParseStatement();
-    consequent.push_back(move(statement));
+    consequent->push_back(move(statement));
   }
   return make_shared<SwitchCaseNode>(move(test), move(consequent));
 }
 
-shared_ptr<Node> Parser::ParseSwitchStatement()
+SN Parser::ParseSwitchStatement()
 {
   lexer_->GetToken();
   lexer_->GetToken();
@@ -427,17 +431,17 @@ shared_ptr<Node> Parser::ParseSwitchStatement()
   lexer_->GetToken();
   lexer_->GetToken();
 
-  vector<shared_ptr<Node>> cases;
+  SVSN cases = make_shared<VSN>();
   while (lexer_->current_token() == TokenType::kCaseToken ||
          lexer_->current_token() == TokenType::kDefaultToken)
   {
-    cases.push_back(ParseSwitchNodeStatement());
+    cases->push_back(ParseSwitchNodeStatement());
   }
   lexer_->GetToken();
   return make_shared<SwitchStatementNode>(move(discriminant), move(cases));
 }
 
-shared_ptr<Node> Parser::ParseWhileStatement()
+SN Parser::ParseWhileStatement()
 {
   lexer_->GetToken();
   lexer_->GetToken();
@@ -447,7 +451,7 @@ shared_ptr<Node> Parser::ParseWhileStatement()
   return make_shared<WhileStatementNode>(move(test), move(body));
 }
 
-shared_ptr<Node> Parser::ParseDoWhileStatement()
+SN Parser::ParseDoWhileStatement()
 {
   lexer_->GetToken();
   auto body = ParseStatement();
@@ -482,10 +486,10 @@ Parser::GetVariableDeclarationKindFromToken(TokenType token)
   }
 }
 
-shared_ptr<Node> Parser::ParseVariableDeclarator()
+SN Parser::ParseVariableDeclarator()
 {
   auto id = ParseIdentifier();
-  shared_ptr<Node> init = nullptr;
+  SN init = nullptr;
   if (lexer_->current_token() == TokenType::kEqualToken)
   {
     lexer_->GetToken();
@@ -494,15 +498,15 @@ shared_ptr<Node> Parser::ParseVariableDeclarator()
   return make_shared<VariableDeclaratorNode>(move(id), move(init));
 }
 
-shared_ptr<Node> Parser::ParseVariableDeclaration()
+SN Parser::ParseVariableDeclaration()
 {
   auto kind = GetVariableDeclarationKindFromToken(lexer_->current_token());
   lexer_->GetToken();
-  vector<shared_ptr<Node>> declarations;
+  SVSN declarations = make_shared<VSN>();
   while (1)
   {
     auto declaration = ParseVariableDeclarator();
-    declarations.push_back(move(declaration));
+    declarations->push_back(move(declaration));
     if (lexer_->current_token() == TokenType::kCommaToken)
     {
       lexer_->GetToken();
@@ -534,11 +538,11 @@ bool Parser::CheckIsVariableDeclaration(TokenType token)
   }
 }
 
-shared_ptr<Node> Parser::ParseForStatement()
+SN Parser::ParseForStatement()
 {
   lexer_->GetToken();
   lexer_->GetToken();
-  shared_ptr<Node> init = nullptr;
+  SN init = nullptr;
   if (lexer_->current_token() != TokenType::kSemiColonToken)
   {
     if (CheckIsVariableDeclaration(lexer_->current_token()))
@@ -551,12 +555,12 @@ shared_ptr<Node> Parser::ParseForStatement()
     }
   }
   lexer_->GetToken();
-  shared_ptr<Node> test = nullptr;
+  SN test = nullptr;
   if (lexer_->current_token() != TokenType::kSemiColonToken)
   {
     test = ParseExpression();
   }
-  shared_ptr<Node> update = nullptr;
+  SN update = nullptr;
   lexer_->GetToken();
   if (lexer_->current_token() != TokenType::kRightBraceToken)
   {
@@ -567,7 +571,7 @@ shared_ptr<Node> Parser::ParseForStatement()
                                        move(body));
 }
 
-shared_ptr<Node> Parser::ParseForInStatementOrForOfStatement()
+SN Parser::ParseForInStatementOrForOfStatement()
 {
   lexer_->GetToken();
   bool await = false;
@@ -577,7 +581,7 @@ shared_ptr<Node> Parser::ParseForInStatementOrForOfStatement()
     lexer_->GetToken();
   }
   lexer_->GetToken();
-  shared_ptr<Node> left = nullptr;
+  SN left = nullptr;
   if (CheckIsVariableDeclaration(lexer_->current_token()))
   {
     left = ParseVariableDeclaration();
@@ -604,7 +608,7 @@ shared_ptr<Node> Parser::ParseForInStatementOrForOfStatement()
   }
 }
 
-shared_ptr<Node> Parser::ParseForInStatement(shared_ptr<Node> left)
+SN Parser::ParseForInStatement(SN left)
 {
   lexer_->GetToken();
   auto right = ParseExpression();
@@ -612,7 +616,7 @@ shared_ptr<Node> Parser::ParseForInStatement(shared_ptr<Node> left)
   return make_shared<ForInStatementNode>(move(left), move(right), move(body));
 }
 
-shared_ptr<Node> Parser::ParseForOfStatement(shared_ptr<Node> left,
+SN Parser::ParseForOfStatement(SN left,
                                              bool await)
 {
   lexer_->GetToken();
@@ -622,14 +626,14 @@ shared_ptr<Node> Parser::ParseForOfStatement(shared_ptr<Node> left,
                                          await);
 }
 
-shared_ptr<Node> Parser::ParseThrowStatement()
+SN Parser::ParseThrowStatement()
 {
   lexer_->GetToken();
   auto argument = ParseExpression();
   return make_shared<ThrowStatementNode>(move(argument));
 }
 
-shared_ptr<Node> Parser::ParseCatchClause()
+SN Parser::ParseCatchClause()
 {
   lexer_->GetToken();
   lexer_->GetToken();
@@ -639,12 +643,12 @@ shared_ptr<Node> Parser::ParseCatchClause()
   return make_shared<CatchClauseNode>(move(param), move(body));
 }
 
-shared_ptr<Node> Parser::ParseTryStatement()
+SN Parser::ParseTryStatement()
 {
   lexer_->GetToken();
   auto block = ParseStatement();
-  shared_ptr<Node> handler = nullptr;
-  shared_ptr<Node> finalizer = nullptr;
+  SN handler = nullptr;
+  SN finalizer = nullptr;
   if (lexer_->current_token() == TokenType::kCatchToken)
   {
     handler = ParseCatchClause();
@@ -658,14 +662,14 @@ shared_ptr<Node> Parser::ParseTryStatement()
                                        move(finalizer));
 }
 
-vector<shared_ptr<Node>> Parser::ParseFunctionParams()
+SVSN Parser::ParseFunctionParams()
 {
   lexer_->GetToken();
-  vector<shared_ptr<Node>> params;
+  SVSN params = make_shared<VSN>();
   while (lexer_->current_token() != TokenType::kRightParenToken)
   {
     auto param = ParseIdentifier();
-    params.push_back(move(param));
+    params->push_back(move(param));
     if (lexer_->current_token() == TokenType::kCommaToken)
     {
       lexer_->GetToken();
@@ -675,7 +679,7 @@ vector<shared_ptr<Node>> Parser::ParseFunctionParams()
   return params;
 }
 
-shared_ptr<Node> Parser::ParseFunctionDeclaration()
+SN Parser::ParseFunctionDeclaration()
 {
   bool generator = false;
   bool async = false;
@@ -697,7 +701,7 @@ shared_ptr<Node> Parser::ParseFunctionDeclaration()
                                               move(body), generator, async);
 }
 
-shared_ptr<Node> Parser::ParseFunctionExpression()
+SN Parser::ParseFunctionExpression()
 {
   bool generator = false;
   bool async = false;
@@ -712,7 +716,7 @@ shared_ptr<Node> Parser::ParseFunctionExpression()
     generator = true;
     lexer_->GetToken();
   }
-  shared_ptr<Node> id = nullptr;
+  SN id = nullptr;
   if (lexer_->current_token() != TokenType::kLeftParenToken)
   {
     id = ParseIdentifier();
@@ -723,10 +727,10 @@ shared_ptr<Node> Parser::ParseFunctionExpression()
                                               move(body), generator, async);
 }
 
-shared_ptr<Node> Parser::ParseImportSpecifier()
+SN Parser::ParseImportSpecifier()
 {
   auto imported = ParseIdentifier();
-  shared_ptr<Node> local = imported;
+  SN local = imported;
   if (lexer_->current_token() == TokenType::kAsToken)
   {
     lexer_->GetToken();
@@ -735,13 +739,13 @@ shared_ptr<Node> Parser::ParseImportSpecifier()
   return make_shared<ImportSpecifierNode>(move(imported), move(local));
 }
 
-shared_ptr<Node> Parser::ParseImportDefaultSpecifier()
+SN Parser::ParseImportDefaultSpecifier()
 {
   auto local = ParseIdentifier();
   return make_shared<ImportDefaultSpecifierNode>(move(local));
 }
 
-shared_ptr<Node> Parser::ParseImportNamespaceSpecifier()
+SN Parser::ParseImportNamespaceSpecifier()
 {
   lexer_->GetToken();
   lexer_->GetToken();
@@ -749,21 +753,21 @@ shared_ptr<Node> Parser::ParseImportNamespaceSpecifier()
   return make_shared<ImportNamespaceSpecifierNode>(move(local));
 }
 
-shared_ptr<Node> Parser::ParseImportDeclaration()
+SN Parser::ParseImportDeclaration()
 {
   lexer_->GetToken();
-  vector<shared_ptr<Node>> specifiers;
+  SVSN specifiers = make_shared<VSN>();
   while (lexer_->current_token() != TokenType::kFromToken)
   {
     if (lexer_->current_token() == TokenType::kMulToken)
     {
       auto specifier = ParseImportNamespaceSpecifier();
-      specifiers.push_back(move(specifier));
+      specifiers->push_back(move(specifier));
     }
     else if (lexer_->current_token() == TokenType::kIdentifierToken)
     {
       auto specifier = ParseImportDefaultSpecifier();
-      specifiers.push_back(move(specifier));
+      specifiers->push_back(move(specifier));
     }
     else if (lexer_->current_token() == TokenType::kLeftBraceToken)
     {
@@ -771,7 +775,7 @@ shared_ptr<Node> Parser::ParseImportDeclaration()
       while (lexer_->current_token() != TokenType::kRightBraceToken)
       {
         auto specifier = ParseImportSpecifier();
-        specifiers.push_back(move(specifier));
+        specifiers->push_back(move(specifier));
         if (lexer_->current_token() == TokenType::kCommaToken)
         {
           lexer_->GetToken();
@@ -790,10 +794,10 @@ shared_ptr<Node> Parser::ParseImportDeclaration()
                                             move(specifiers), source);
 }
 
-shared_ptr<Node> Parser::ParseExportSpecifier()
+SN Parser::ParseExportSpecifier()
 {
   auto local = ParseIdentifier();
-  shared_ptr<Node> exported = local;
+  SN exported = local;
   if (lexer_->current_token() == TokenType::kAsToken)
   {
     lexer_->GetToken();
@@ -802,25 +806,25 @@ shared_ptr<Node> Parser::ParseExportSpecifier()
   return make_shared<ExportSpecifierNode>(move(exported), move(local));
 }
 
-shared_ptr<Node> Parser::ParseExportNamespaceSpecifier()
+SN Parser::ParseExportNamespaceSpecifier()
 {
   lexer_->GetToken();
   auto exported = ParseIdentifier();
   return make_shared<ExportNamespaceSpecifierNode>(move(exported));
 }
 
-shared_ptr<Node> Parser::ParseExportNamedDeclarationOrExportAllDeclaration()
+SN Parser::ParseExportNamedDeclarationOrExportAllDeclaration()
 {
-  vector<shared_ptr<Node>> specifiers;
-  shared_ptr<Node> declaration = nullptr;
-  shared_ptr<Node> source = nullptr;
+  SVSN specifiers = make_shared<VSN>();
+  SN declaration = nullptr;
+  SN source = nullptr;
   if (lexer_->current_token() == TokenType::kLeftBraceToken)
   {
     lexer_->GetToken();
     while (lexer_->current_token() != TokenType::kRightBraceToken)
     {
       auto specifier = ParseExportSpecifier();
-      specifiers.push_back(move(specifier));
+      specifiers->push_back(move(specifier));
       if (lexer_->current_token() == TokenType::kCommaToken)
       {
         lexer_->GetToken();
@@ -833,7 +837,7 @@ shared_ptr<Node> Parser::ParseExportNamedDeclarationOrExportAllDeclaration()
     if (lexer_->current_token() == TokenType::kAsToken)
     {
       auto specifier = ParseExportNamespaceSpecifier();
-      specifiers.push_back(move(specifier));
+      specifiers->push_back(move(specifier));
     }
     else
     {
@@ -856,10 +860,10 @@ shared_ptr<Node> Parser::ParseExportNamedDeclarationOrExportAllDeclaration()
       move(declaration), move(specifiers), move(source));
 }
 
-shared_ptr<Node> Parser::ParseExportDefaultDeclaration()
+SN Parser::ParseExportDefaultDeclaration()
 {
   lexer_->GetToken();
-  shared_ptr<Node> declaration = nullptr;
+  SN declaration = nullptr;
   if (lexer_->current_token() == TokenType::kFunctionToken)
   {
     declaration = ParseFunctionDeclaration();
@@ -871,7 +875,7 @@ shared_ptr<Node> Parser::ParseExportDefaultDeclaration()
   return make_shared<ExportDefaultDeclarationNode>(move(declaration));
 }
 
-shared_ptr<Node>
+SN
 Parser::ParseExportNamedDeclarationOrExportDefaultDeclaration()
 {
   lexer_->GetToken();
@@ -885,7 +889,7 @@ Parser::ParseExportNamedDeclarationOrExportDefaultDeclaration()
   }
 }
 
-shared_ptr<Node> Parser::ParseDeclaration()
+SN Parser::ParseDeclaration()
 {
   if (lexer_->current_token() == TokenType::kAsyncToken)
   {
@@ -910,13 +914,13 @@ shared_ptr<Node> Parser::ParseDeclaration()
   UNREACHABLE;
 }
 
-shared_ptr<Node> Parser::ParseProgram()
+SN Parser::ParseProgram()
 {
   SourceType source_type = SourceType::kModule;
-  vector<shared_ptr<Node>> body;
+  SVSN body = make_shared<VSN>();
   while (lexer_->current_token() != TokenType::kEofToken)
   {
-    shared_ptr<Node> node;
+    SN node;
     if (lexer_->current_token() == TokenType::kImportToken)
     {
       node = ParseImportDeclaration();
@@ -929,12 +933,12 @@ shared_ptr<Node> Parser::ParseProgram()
     {
       node = ParseStatement();
     }
-    body.push_back(move(node));
+    body->push_back(move(node));
   }
   return make_shared<ProgramNode>(source_type, move(body));
 }
 
-shared_ptr<Node> Parser::Parse()
+SN Parser::Parse()
 {
   lexer_->GetToken();
   return ParseProgram();

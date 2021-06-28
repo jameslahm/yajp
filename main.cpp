@@ -23,7 +23,8 @@ EMSCRIPTEN_BINDINGS(nodes) {
   #define BP BINDING_PROPERTY
   #define BC BINDING_CONSTRUCTOR
   #define SN shared_ptr<Node>
-  #define VSN vector<shared_ptr<Node>>
+  #define VSN vector<SN>
+  #define SVSN shared_ptr<VSN>
 
   class_<Node>("Node")
   .constructor<NodeType>()
@@ -66,7 +67,7 @@ EMSCRIPTEN_BINDINGS(nodes) {
   BP(ExpressionStatementNode,expression);
 
   BN(BlockStatementNode)
-  BC(VSN)
+  BC(SVSN)
   BP(BlockStatementNode,body);
 
 
@@ -92,12 +93,12 @@ EMSCRIPTEN_BINDINGS(nodes) {
   BP(IfStatementNode,alternate);
   
   BN(SwitchStatementNode)
-  BC(SN,VSN)
+  BC(SN,SVSN)
   BP(SwitchStatementNode,cases)
   BP(SwitchStatementNode,discriminant);
 
   BN(SwitchCaseNode)
-  BC(SN,VSN)
+  BC(SN,SVSN)
   BP(SwitchCaseNode,consequent)
   BP(SwitchCaseNode,test);
   
@@ -117,7 +118,7 @@ EMSCRIPTEN_BINDINGS(nodes) {
   BP(ForStatementNode,test);
 
   BN(VariableDeclarationNode)
-  BC(VariableDeclarationKind,VSN)
+  BC(VariableDeclarationKind,SVSN)
   BP(VariableDeclarationNode,kind)
   BP(VariableDeclarationNode,declarations);
 
@@ -140,12 +141,12 @@ EMSCRIPTEN_BINDINGS(nodes) {
   BP(ForOfStatementNode,await);
 
   BN(ProgramNode)
-  BC(SourceType,VSN)
+  BC(SourceType,SVSN)
   BP(ProgramNode,source_type)
   BP(ProgramNode,body);
 
   BN(ImportDeclarationNode)
-  BC(ImportKind,VSN,SN)
+  BC(ImportKind,SVSN,SN)
   BP(ImportDeclarationNode,specifiers)
   BP(ImportDeclarationNode,source);
 
@@ -176,7 +177,7 @@ EMSCRIPTEN_BINDINGS(nodes) {
   BP(ExportNamespaceSpecifierNode,local);
 
   BN(ExportNamedDeclarationNode)
-  BC(SN,VSN,SN)
+  BC(SN,SVSN,SN)
   BP(ExportNamedDeclarationNode,declaration)
   BP(ExportNamedDeclarationNode,source)
   BP(ExportNamedDeclarationNode,specifiers);
@@ -190,7 +191,7 @@ EMSCRIPTEN_BINDINGS(nodes) {
   BP(ExportAllDeclarationNode,source);
 
   BN(CallExpressionNode)
-  BC(SN,VSN)
+  BC(SN,SVSN)
   BP(CallExpressionNode,callee)
   BP(CallExpressionNode,arguments);
 
@@ -199,7 +200,7 @@ EMSCRIPTEN_BINDINGS(nodes) {
   BP(ParenthesizedExpressionNode,expression);
 
   BN(FunctionDeclarationNode)
-  BC(SN,VSN,SN,bool,bool)
+  BC(SN,SVSN,SN,bool,bool)
   BP(FunctionDeclarationNode,id)
   BP(FunctionDeclarationNode,params)
   BP(FunctionDeclarationNode,body)
@@ -216,6 +217,8 @@ EMSCRIPTEN_BINDINGS(nodes) {
 
 EMSCRIPTEN_BINDINGS(stl_wrappers) {
     register_vector<shared_ptr<Node>>("vector<shared_ptr<Node>>")
+    // .smart_ptr<std::shared_ptr<vector<shared_ptr<Node>>>>("vector<shared_ptr<Node>>")
+    .smart_ptr_constructor("vector<shared_ptr<Node>>", &std::make_shared<vector<shared_ptr<Node>>>)
     .function("pop_back",&vector<shared_ptr<Node>>::pop_back);
 }
 

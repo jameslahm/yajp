@@ -36,8 +36,8 @@ void Visitor::visitExpressionStatementNode(shared_ptr<ExpressionStatementNode> n
 
 void Visitor::visitBlockStatementNode(shared_ptr<BlockStatementNode> node){
   auto body = node->body();
-  for(int index=0;index<body.size();index++){
-    body[index]->Accept(*this);
+  for(int index=0;index<body->size();index++){
+    (*body)[index]->Accept(*this);
   }
 }
 
@@ -70,16 +70,16 @@ void Visitor::visitIfStatementNode(shared_ptr<IfStatementNode> node){
 void Visitor::visitSwitchStatementNode(shared_ptr<SwitchStatementNode> node){
   node->discriminant()->Accept(*this);
   auto cases = node->cases();
-  for(int index=0;index<cases.size();index++){
-    cases[index]->Accept(*this);
+  for(int index=0;index<cases->size();index++){
+    (*cases)[index]->Accept(*this);
   }
 }
 
 void Visitor::visitSwitchCaseNode(shared_ptr<SwitchCaseNode> node){
   node->test()->Accept(*this);
   auto consequent = node->consequent();
-  for(int index=0;index<consequent.size();index++){
-    consequent[index]->Accept(*this);
+  for(int index=0;index<consequent->size();index++){
+    (*consequent)[index]->Accept(*this);
   }
 }
 
@@ -102,8 +102,8 @@ void Visitor::visitForStatementNode(shared_ptr<ForStatementNode> node){
 
 void Visitor::visitVariableDeclarationNode(shared_ptr<VariableDeclarationNode> node){
   auto declarations = node->declarations();
-  for(int index=0;index<declarations.size();index++){
-    declarations[index]->Accept(*this);
+  for(int index=0;index<declarations->size();index++){
+    (*declarations)[index]->Accept(*this);
   }
 }
 
@@ -142,8 +142,8 @@ void Visitor::visitTryStatementNode(shared_ptr<TryStatementNode> node){
 void Visitor::visitFunctionDeclarationNode(shared_ptr<FunctionDeclarationNode> node){
   node->id()->Accept(*this);
   auto params = node->params();
-  for(int index=0;index<params.size();index++){
-    params[index]->Accept(*this);
+  for(int index=0;index<params->size();index++){
+    (*params)[index]->Accept(*this);
   }
   node->body()->Accept(*this);
 }
@@ -151,23 +151,23 @@ void Visitor::visitFunctionDeclarationNode(shared_ptr<FunctionDeclarationNode> n
 void Visitor::visitFunctionExpressionNode(shared_ptr<FunctionExpressionNode> node){
   node->id()->Accept(*this);
   auto params = node->params();
-  for(int index=0;index<params.size();index++){
-    params[index]->Accept(*this);
+  for(int index=0;index<params->size();index++){
+    (*params)[index]->Accept(*this);
   }
   node->body()->Accept(*this);
 }
 
 void Visitor::visitProgramNode(shared_ptr<ProgramNode> node){
   auto body = node->body();
-  for(int index=0;index<body.size();index++){
-    body[index]->Accept(*this);
+  for(int index=0;index<body->size();index++){
+    (*body)[index]->Accept(*this);
   }
 }
 
 void Visitor::visitImportDeclarationNode(shared_ptr<ImportDeclarationNode> node){
   auto specifiers = node->specifiers();
-  for(int index=0;index<specifiers.size();index++){
-    specifiers[index]->Accept(*this);
+  for(int index=0;index<specifiers->size();index++){
+    (*specifiers)[index]->Accept(*this);
   }
   node->source()->Accept(*this);
 }
@@ -201,8 +201,8 @@ void Visitor::visitExportNamespaceSpecifierNode(shared_ptr<ExportNamespaceSpecif
 void Visitor::visitExportNamedDeclarationNode(shared_ptr<ExportNamedDeclarationNode> node){
   node->declaration()->Accept(*this);
   auto specifiers = node->specifiers();
-  for(int index=0;index<specifiers.size();index++){
-    specifiers[index]->Accept(*this);
+  for(int index=0;index<specifiers->size();index++){
+    (*specifiers)[index]->Accept(*this);
   }
   node->source()->Accept(*this);
 }
@@ -218,8 +218,8 @@ void Visitor::visitExportAllDeclarationNode(shared_ptr<ExportAllDeclarationNode>
 void Visitor::visitCallExpressionNode(shared_ptr<CallExpressionNode> node){
   node->callee()->Accept(*this);
   auto arguments = node->arguments();
-  for(int index=0;index<arguments.size();index++){
-    arguments[index]->Accept(*this);
+  for(int index=0;index<arguments->size();index++){
+    (*arguments)[index]->Accept(*this);
   }
 }
 

@@ -1,10 +1,11 @@
 all: gen build
 
 SRC = $(wildcard *.cpp)
-EMSDK = /home/wangao/projects/emsdk
+DIR = $(which emsdk)
 
 gen: $(SRC)
 	mkdir -p build
+	EMSDK=$(dirname `which emsdk`)
 	cmake -S . -B build \
 		"-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=$(EMSDK)/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" \
 		"-DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake" \
