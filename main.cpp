@@ -217,8 +217,8 @@ EMSCRIPTEN_BINDINGS(nodes) {
 
 EMSCRIPTEN_BINDINGS(stl_wrappers) {
     register_vector<shared_ptr<Node>>("vector<shared_ptr<Node>>")
-    // .smart_ptr<std::shared_ptr<vector<shared_ptr<Node>>>>("vector<shared_ptr<Node>>")
-    .smart_ptr_constructor("vector<shared_ptr<Node>>", &std::make_shared<vector<shared_ptr<Node>>>)
+    .smart_ptr<std::shared_ptr<vector<shared_ptr<Node>>>>("vector<shared_ptr<Node>>")
+    // .smart_ptr_constructor("vector<shared_ptr<Node>>", &std::make_shared<vector<shared_ptr<Node>>>)
     .function("pop_back",&vector<shared_ptr<Node>>::pop_back);
 }
 

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      .code {
+        background-color: aliceblue;
+      }
+    </style>
+  </head>
+  <body>
+    Raw
+    <pre id="raw" class="code">
+      <code ></code>
+    </pre>
+    New
+    <pre id="new" class="code">
+      <code ></code>
+    </pre>
+  </body>
+  <script>
+    var Module = {
+      onRuntimeInitialized: function () {
+        const source = `
+        import sayHello from 'hello';
+        sayHello();
+        function sayHi(){
+          const a=1;
+          let b = 1+1+1+1+1;
+          const c = (a+b)-1-2;
+          return 1;
+        }
+        `;
+        const parser = new Module.Parser(source);
+        const node = parser.Parse();
+        const raw = document.getElementById("raw");
+        raw.innerHTML = node.GenJs();
+
+        var Visitor = Module.Visitor.extend("Visitor", {
+          visitIdentifierNode(node) {
+            if (node.name == "a") {
+              node.name = "a1";
+            }
+          },
+          visitFunctionDeclarationNode(node) {
+            console.log(node);
+            const body = node.body.body
+            body.pop_back();
+            node.body.body = body;
+          },
+        });
+
+        var instance = new Visitor();
+        node.Accept(instance);
+        const new_js = document.getElementById("new");
+        new_js.innerHTML = node.GenJs();
+      },
+    };
+  </script>
+  <script src="yajp.js"></script>
+</html>
